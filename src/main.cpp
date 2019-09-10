@@ -2,5 +2,5 @@
 
 int main()
 {
-	Game{}();
+	Game{19}(2);
 }

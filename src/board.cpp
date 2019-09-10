@@ -2,8 +2,9 @@
 #include <algorithm>
 #include <iostream>
 
-Board::Board() :
-	spots(BOARD_SIZE, 0)
+Board::Board(int size) :
+	size{size},
+	spots(size * size, 0)
 {}
 
 void Board::play(int action, int player)
@@ -41,12 +42,12 @@ void Board::print() const
 {
 	for (size_t i = 0; i < spots.size(); ++i)
 	{
-		if		(spots[i] == 1) std::cout << "o";
-		else if	(spots[i] == 2) std::cout << "x";
-		else					std::cout << "-";
+		if		(spots[i] == 1) 		std::cout << "o";
+		else if	(spots[i] == 2) 		std::cout << "x";
+		else							std::cout << "-";
 
-		if		(i % 19 != 18)	std::cout << " ";
-		else					std::cout << "\n";
+		if		(i % size != size - 1)	std::cout << " ";
+		else							std::cout << "\n";
 	}
 }
 

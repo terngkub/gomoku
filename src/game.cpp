@@ -2,12 +2,12 @@
 #include "minimax.hpp"
 #include <iostream>
 
-Game::Game() :
-	board{},
+Game::Game(int size) :
+	board{size},
 	current_player{1}
 {}
 
-void Game::operator()()
+void Game::operator()(int depth)
 {
 	while (!board.is_full())
 	{
@@ -16,7 +16,7 @@ void Game::operator()()
 
 		if (current_player == 1)
 		{
-			action = Minimax{board, current_player}();
+			action = Minimax{board, current_player}(depth);
 		}
 		else
 		{

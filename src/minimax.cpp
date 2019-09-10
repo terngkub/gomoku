@@ -7,9 +7,9 @@ Minimax::Minimax(Board board, int ai) :
 	ai{ai}
 {}
 
-int Minimax::operator()()
+int Minimax::operator()(int depth)
 {
-	minimax(ai, MINIMAX_DEPTH, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
+	minimax(ai, depth, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
 	return best_action;
 }
 

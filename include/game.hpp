@@ -4,8 +4,8 @@
 class Game
 {
 public:
-    Game();
-    void operator()();
+    Game(int size);
+    void operator()(int depth);
 
 private:
     Board board;

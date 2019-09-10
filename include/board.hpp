@@ -2,12 +2,11 @@
 #include <array>
 #include <vector>
 
-#define BOARD_SIZE 361
-
 class Board
 {
 public:
-    Board();
+    Board(int size);
+
     void play(int action, int player);
     void redo(int action, int player);
     int heuristic(int player, int depth_score) const;
@@ -22,5 +21,6 @@ public:
     int detect_vertical(int player, int index) const;
 
 private:
+    int size;
     std::vector<int> spots;
 };

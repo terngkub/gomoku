@@ -2,13 +2,11 @@
 #include "board.hpp"
 #include <vector>
 
-#define MINIMAX_DEPTH 4
-
 class Minimax
 {
 public:
     Minimax(Board board, int ai);
-    int operator()();
+    int operator()(int depth);
 
 private:
     Board board;

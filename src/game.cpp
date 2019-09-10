@@ -14,9 +14,17 @@ void Game::operator()(int depth)
 	while (!board.is_full())
 	{
 		std::cout << "Player " << current_player << "'s turn\n";
-		int action = (current_player == 1)
-			? Minimax{board, current_player}(depth)
-			: get_player_input();
+		int action;
+		if (current_player == 1)
+		{
+			auto beg = std::chrono::system_clock::now();
+			action = Minimax{board, current_player}(depth);
+			auto end = std::chrono::system_clock::now();
+			auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - beg);
+			std::cout << "AI took " << duration.count() << "ms\n";
+		}
+		else
+			action = get_player_input();
 		board.play(action, current_player);
 		board.print();
 

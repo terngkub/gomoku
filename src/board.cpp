@@ -70,7 +70,7 @@ bool Board::is_full() const
 
 bool Board::is_win(int player) const
 {
-	for (int i = 1; i < int(spots.size()); ++i)
+	for (int i = 0; i < int(spots.size()); ++i)
 	{
 		if (detect_horizontal(player, i) == 5 || detect_vertical(player, i) == 5)
 			return true;

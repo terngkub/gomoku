@@ -5,11 +5,12 @@
 class Minimax
 {
 public:
-    Minimax(Board board, int ai);
-    int operator()(int depth);
+    Minimax(Board board, int depth, int ai);
+    int operator()();
 
 private:
     Board board;
+    int const max_depth;
     int const ai;
     int best_action;
 

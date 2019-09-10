@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <set>
 #include <vector>
 
 class Board
@@ -10,7 +11,7 @@ public:
     void play(int action, int player);
     void redo(int action, int player);
     int heuristic(int player, int depth_score) const;
-    std::vector<int> next(int player) const;
+    std::set<int> next(int player) const;
     void print() const;
     bool is_empty_spot(int spot) const;
 

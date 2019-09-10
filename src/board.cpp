@@ -26,14 +26,37 @@ int Board::heuristic(int player, int depth_score) const
 	return 0;
 }
 
-std::vector<int> Board::next(int player) const
+std::set<int> Board::next(int player) const
 {
 	(void)player;
-	std::vector<int> nexts{};
-	for (size_t i = 0; i < spots.size(); ++i)
+	std::set<int> nexts{};
+	for (int i = 0; i < int(spots.size()); ++i)
 	{
-		if (spots[i] == 0)
-			nexts.push_back(i);
+		if (spots[i] != 0)
+		{
+			auto tl = i - size - 1;
+			auto tm = i - size;
+			auto tr = i - size + 1;
+			auto ml = i - 1;
+			auto mr = i + 1;
+			auto bl = i + size - 1;
+			auto bm = i + size;
+			auto br = i + size + 1;
+
+			if (tl > 0 && spots[tl] == 0) nexts.insert(tl);
+			if (tm > 0 && spots[tm] == 0) nexts.insert(tm);
+			if (tr > 0 && spots[tr] == 0) nexts.insert(tr);
+			if (ml > 0 && spots[ml] == 0) nexts.insert(ml);
+			if (mr < int(spots.size()) && spots[mr] == 0) nexts.insert(mr);
+			if (bl < int(spots.size()) && spots[bl] == 0) nexts.insert(bl);
+			if (bm < int(spots.size()) && spots[bm] == 0) nexts.insert(bm);
+			if (br < int(spots.size()) && spots[br] == 0) nexts.insert(br);
+		}
+	}
+	if (nexts.size() == 0)
+	{
+		if (std::all_of(spots.begin(), spots.end(), [](int spot){ return spot == 0; }))
+			nexts.insert((size - 1) * size / 2 + size / 2);
 	}
 	return nexts;
 }
@@ -72,6 +95,7 @@ bool Board::is_win(int player) const
 {
 	for (int i = 0; i < int(spots.size()); ++i)
 	{
+		if (spots[i] != player) continue;
 		if (detect_horizontal(player, i) == 5 || detect_vertical(player, i) == 5)
 			return true;
 	}
@@ -81,9 +105,9 @@ bool Board::is_win(int player) const
 int Board::detect_horizontal(int player, int index) const
 {
 	int count = 1;
-	if (index >= 1 && spots[index - 1] == player)
+	if (index > 0 && spots[index - 1] == player)
 		return 0;
-	for (int i = 1; i <= 5 && index + i < 360 && spots[index + i] == player; ++i)
+	for (int i = 1; i < 5 && index + i < int(spots.size()) && spots[index + i] == player; ++i)
 		++count;
 	return count;
 }
@@ -91,9 +115,9 @@ int Board::detect_horizontal(int player, int index) const
 int Board::detect_vertical(int player, int index) const
 {
 	int count = 1;
-	if (index >= 19 && spots[index - 19] == player)
+	if (index >= size && spots[index - size] == player)
 		return 0;
-	for (int i = 1; i < 5 && index + i * 19 < 360 && spots[index + i * 19] == player; ++i)
+	for (int i = 1; i < 5 && index + i * size < int(spots.size()) && spots[index + i * size] == player; ++i)
 		++count;
 	return count;
 }

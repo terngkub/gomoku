@@ -18,7 +18,7 @@ void Game::operator()(int depth)
 		if (current_player == 1)
 		{
 			auto beg = std::chrono::system_clock::now();
-			action = Minimax{board, current_player}(depth);
+			action = Minimax{board, depth, current_player}();
 			auto end = std::chrono::system_clock::now();
 			auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - beg);
 			std::cout << "AI took " << duration.count() << "ms\n";
@@ -79,6 +79,5 @@ int Game::get_player_input()
 
 		break;
 	}
-	std::cout << index << "\n";
 	return index;
 }

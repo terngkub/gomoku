@@ -2,14 +2,15 @@
 #include <limits>
 #include <iostream>
 
-Minimax::Minimax(Board board, int ai) :
+Minimax::Minimax(Board board, int depth, int ai) :
 	board{board},
+	max_depth{depth},
 	ai{ai}
 {}
 
-int Minimax::operator()(int depth)
+int Minimax::operator()()
 {
-	minimax(ai, depth, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
+	minimax(ai, max_depth, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
 	return best_action;
 }
 
@@ -34,7 +35,8 @@ int Minimax::minimax(int player, int depth, int alpha, int beta)
 			if (new_score > max_score)
 			{
 				max_score = new_score;
-				best_action = action;
+				if (depth == max_depth)
+					best_action = action;
 			}
 
 			alpha = std::max(alpha, new_score);

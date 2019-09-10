@@ -2,7 +2,7 @@
 #include "board.hpp"
 #include <vector>
 
-#define MINIMAX_DEPTH 9
+#define MINIMAX_DEPTH 4
 
 class Minimax
 {

@@ -8,7 +8,6 @@ Board::Board() :
 
 void Board::play(int action, int player)
 {
-	(void)player;
 	spots[action] = player;
 }
 
@@ -38,54 +37,6 @@ std::vector<int> Board::next(int player) const
 	return nexts;
 }
 
-bool Board::is_empty_spot(int spot) const
-{
-	return spots[spot] == 0;
-}
-
-bool Board::is_full() const
-{
-	return std::all_of(spots.begin(), spots.end(), [](int spot){ return spot != 0; });
-}
-
-bool Board::is_win() const
-{
-	// vertical
-	if (spots[0] != 0 && spots[0] == spots[3] && spots[0] == spots[6]) return true;
-	if (spots[1] != 0 && spots[1] == spots[4] && spots[1] == spots[7]) return true;
-	if (spots[2] != 0 && spots[2] == spots[5] && spots[2] == spots[8]) return true;
-
-	// horizontal
-	if (spots[0] != 0 && spots[0] == spots[1] && spots[0] == spots[2]) return true;
-	if (spots[3] != 0 && spots[3] == spots[4] && spots[3] == spots[5]) return true;
-	if (spots[6] != 0 && spots[6] == spots[7] && spots[6] == spots[8]) return true;
-
-	// diagonal
-	if (spots[0] != 0 && spots[0] == spots[4] && spots[0] == spots[8]) return true;
-	if (spots[2] != 0 && spots[2] == spots[4] && spots[2] == spots[6]) return true;
-
-	return false;
-}
-
-bool Board::is_win(int player) const
-{
-	// vertical
-	if (spots[0] == player && spots[0] == spots[3] && spots[0] == spots[6]) return true;
-	if (spots[1] == player && spots[1] == spots[4] && spots[1] == spots[7]) return true;
-	if (spots[2] == player && spots[2] == spots[5] && spots[2] == spots[8]) return true;
-
-	// horizontal
-	if (spots[0] == player && spots[0] == spots[1] && spots[0] == spots[2]) return true;
-	if (spots[3] == player && spots[3] == spots[4] && spots[3] == spots[5]) return true;
-	if (spots[6] == player && spots[6] == spots[7] && spots[6] == spots[8]) return true;
-
-	// diagonal
-	if (spots[0] == player && spots[0] == spots[4] && spots[0] == spots[8]) return true;
-	if (spots[2] == player && spots[2] == spots[4] && spots[2] == spots[6]) return true;
-
-	return false;
-}
-
 void Board::print() const
 {
 	for (size_t i = 0; i < spots.size(); ++i)
@@ -94,7 +45,54 @@ void Board::print() const
 		else if	(spots[i] == 2) std::cout << "x";
 		else					std::cout << "-";
 
-		if		(i % 3 != 2)	std::cout << " ";
+		if		(i % 19 != 18)	std::cout << " ";
 		else					std::cout << "\n";
 	}
+}
+
+bool Board::is_empty_spot(int spot) const
+{
+	return spots[spot] == 0;
+}
+
+bool Board::is_end() const
+{
+	if (is_full() || is_win(1) || is_win(2))
+		return true;
+	return false;
+}
+
+bool Board::is_full() const
+{
+	return std::all_of(spots.begin(), spots.end(), [](int spot){ return spot != 0; });
+}
+
+bool Board::is_win(int player) const
+{
+	for (int i = 1; i < int(spots.size()); ++i)
+	{
+		if (detect_horizontal(player, i) == 5 || detect_vertical(player, i) == 5)
+			return true;
+	}
+	return false;
+}
+
+int Board::detect_horizontal(int player, int index) const
+{
+	int count = 1;
+	if (index >= 1 && spots[index - 1] == player)
+		return 0;
+	for (int i = 1; i <= 5 && index + i < 360 && spots[index + i] == player; ++i)
+		++count;
+	return count;
+}
+
+int Board::detect_vertical(int player, int index) const
+{
+	int count = 1;
+	if (index >= 19 && spots[index - 19] == player)
+		return 0;
+	for (int i = 1; i < 5 && index + i * 19 < 360 && spots[index + i * 19] == player; ++i)
+		++count;
+	return count;
 }

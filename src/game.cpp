@@ -57,6 +57,7 @@ void Game::operator()()
 
 		current_player ^= 3;
 	}
+
 	std::cout << "\n*************\n";
 	std::cout << "Draw!\n";
 	std::cout << "*************\n";

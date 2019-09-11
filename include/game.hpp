@@ -13,4 +13,5 @@ private:
     int current_player;
 
     int get_player_input();
+    void print_condition();
 };

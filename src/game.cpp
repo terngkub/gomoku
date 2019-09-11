@@ -1,5 +1,6 @@
 #include "game.hpp"
 #include "minimax.hpp"
+#include <chrono>
 #include <iostream>
 #include <regex>
 
@@ -11,7 +12,7 @@ Game::Game(int size) :
 
 void Game::operator()(int depth)
 {
-	while (!board.is_full())
+	while (!board.is_end())
 	{
 		std::cout << "Player " << current_player << "'s turn\n";
 		int action;
@@ -27,21 +28,9 @@ void Game::operator()(int depth)
 			action = get_player_input();
 		board.play(action, current_player);
 		board.print();
-
-		if (board.is_win(current_player))
-		{
-			std::cout << "\n*************\n";
-			std::cout << "Player " << current_player << " win!\n";
-			std::cout << "*************\n";
-			return;
-		}
-
 		current_player ^= 3;
 	}
-
-	std::cout << "\n*************\n";
-	std::cout << "Draw!\n";
-	std::cout << "*************\n";
+	print_condition();
 }
 
 int Game::get_player_input()
@@ -71,7 +60,7 @@ int Game::get_player_input()
 		}
 
 		index = y * board_size + x;
-		if (!board.is_empty_spot(index))
+		if (!board.is_valid_spot(index))
 		{
 			std::cout << "Spot is not empty. Please try again.\n";
 			continue;
@@ -80,4 +69,15 @@ int Game::get_player_input()
 		break;
 	}
 	return index;
+}
+
+void Game::print_condition()
+{
+	auto condition = board.get_condition();
+
+	std::cout << "\n*************\n";
+	if		(condition == Condition::PlayerOneWin)	std::cout << "Player 1 win!\n";
+	else if	(condition == Condition::PlayerTwoWin)	std::cout << "Player 2 win!\n";
+	else											std::cout << "Draw!\n";
+	std::cout << "*************\n";
 }

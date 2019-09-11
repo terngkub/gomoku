@@ -7,58 +7,136 @@ Board::Board(int size) :
 	spots(size * size, 0)
 {}
 
-void Board::play(int action, int player)
+void Board::play(int index, int player)
 {
-	spots[action] = player;
+	spots[index] = player;
+
+	Action action;
+	action.play = index;
+	action.valid_spots = update_valid_spots(index, player);
+	action.seq_x = update_seq_x(index);
+	action.seq_y = update_seq_y(index);
+	history.push(action);
 }
 
-void Board::redo(int action, int player)
+void Board::undo()
 {
-	(void)player;
-	spots[action] = 0;
+	auto action = history.top();
+	history.pop();
+	spots[action.play] = 0;
+	undo_valid_spots(action.valid_spots);
+	undo_seq_x(action.seq_x);
+	undo_seq_y(action.seq_y);
 }
 
+
+// ****** Valid Spots ******
+
+// TODO
+std::set<int> Board::update_valid_spots(int index, int player)
+{
+	// for each valid spot
+	// if empty and if not there
+	// insert into valid spot
+	// insert into action
+
+}
+
+void Board::undo_valid_spots(std::set<int> const & action_valid_spots)
+{
+	for (auto spot : action_valid_spots)
+		valid_spots.erase(spot);
+}
+
+
+// ****** Sequence ******
+
+int Board::get_head_x(int index) const
+{
+	int player = spots[index];
+	int row_start = (index / size) * size;
+	int head = index;
+	while (spots[head] == player && head > row_start)
+		++head;
+	return head;
+}
+
+// TODO
+int Board::get_head_y(int index) const
+{
+}
+
+SequenceAction Board::update_seq_x(int index)
+{
+	int head = get_head_x(index);
+
+	SequenceAction seq_action;
+	seq_action.head_index = head;
+
+	if (seq_x.find(index + 1) != seq_x.end
+			&& (index + 1) % size != 0
+			&& spots[index] == spots[index + 1])
+	{
+		seq_action.is_combined = true;
+		seq_action.combined_index = index + 1;
+		seq_action.combined_length = seq_x[index];
+
+		seq_x.erase(index + 1);
+		seq_x[head] += 1 + seq_action.combined_length;
+	}
+	else
+	{
+		seq_x[head] += 1;
+
+		seq_action.is_combined = false;
+	}
+
+	if (seq_x[head] >= 5)
+		condition = (spots[index] == 1) ? Condition::PlayerOneWin : Condition::PlayerTwoWin;
+
+	return seq_action;
+}
+
+// TODO
+SequenceAction Board::update_seq_y(int index)
+{
+}
+
+void Board::undo_seq_x(SequenceAction const & seq_action)
+{
+	if (seq_action.is_combined)
+	{
+		seq_x[seq_action.combined_index] = seq_action.combined_length;
+		seq_x[seq_action.head_index] -= (1 + seq_action.combined_length);
+	}
+	else
+	{
+		seq_x[seq_action.head_index] -= 1;
+	}
+}
+
+void Board::undo_seq_y(SequenceAction const & seq_action)
+{
+	if (seq_action.is_combined)
+	{
+		seq_y[seq_action.combined_index] = seq_action.combined_length;
+		seq_y[seq_action.head_index] -= (1 + seq_action.combined_length);
+	}
+	else
+	{
+		seq_y[seq_action.head_index] -= 1;
+	}
+}
+
+// TODO
 int Board::heuristic(int player, int depth_score) const
 {
-	int score = depth_score;
-	if (is_win(player)) return (score + 10);
-	if (is_win(player ^ 3)) return (-score - 10);
-	return 0;
+	// apart from length, seq_x should also store availability of before and after
 }
 
-std::set<int> Board::next(int player) const
+std::set<int> const & Board::next(int player) const
 {
-	(void)player;
-	std::set<int> nexts{};
-	for (int i = 0; i < int(spots.size()); ++i)
-	{
-		if (spots[i] != 0)
-		{
-			auto tl = i - size - 1;
-			auto tm = i - size;
-			auto tr = i - size + 1;
-			auto ml = i - 1;
-			auto mr = i + 1;
-			auto bl = i + size - 1;
-			auto bm = i + size;
-			auto br = i + size + 1;
-
-			if (tl > 0 && spots[tl] == 0) nexts.insert(tl);
-			if (tm > 0 && spots[tm] == 0) nexts.insert(tm);
-			if (tr > 0 && spots[tr] == 0) nexts.insert(tr);
-			if (ml > 0 && spots[ml] == 0) nexts.insert(ml);
-			if (mr < int(spots.size()) && spots[mr] == 0) nexts.insert(mr);
-			if (bl < int(spots.size()) && spots[bl] == 0) nexts.insert(bl);
-			if (bm < int(spots.size()) && spots[bm] == 0) nexts.insert(bm);
-			if (br < int(spots.size()) && spots[br] == 0) nexts.insert(br);
-		}
-	}
-	if (nexts.size() == 0)
-	{
-		if (std::all_of(spots.begin(), spots.end(), [](int spot){ return spot == 0; }))
-			nexts.insert((size - 1) * size / 2 + size / 2);
-	}
-	return nexts;
+	return valid_spots;
 }
 
 void Board::print() const
@@ -74,50 +152,17 @@ void Board::print() const
 	}
 }
 
-bool Board::is_empty_spot(int spot) const
+bool Board::is_valid_spot(int index) const
 {
-	return spots[spot] == 0;
+	return spots[index] == 0;
 }
 
 bool Board::is_end() const
 {
-	if (is_full() || is_win(1) || is_win(2))
-		return true;
-	return false;
+	return condition != Condition::Playing || valid_spots.size() == 0;
 }
 
-bool Board::is_full() const
+Condition Board::get_condition() const
 {
-	return std::all_of(spots.begin(), spots.end(), [](int spot){ return spot != 0; });
-}
-
-bool Board::is_win(int player) const
-{
-	for (int i = 0; i < int(spots.size()); ++i)
-	{
-		if (spots[i] != player) continue;
-		if (detect_horizontal(player, i) == 5 || detect_vertical(player, i) == 5)
-			return true;
-	}
-	return false;
-}
-
-int Board::detect_horizontal(int player, int index) const
-{
-	int count = 1;
-	if (index > 0 && spots[index - 1] == player)
-		return 0;
-	for (int i = 1; i < 5 && index + i < int(spots.size()) && spots[index + i] == player; ++i)
-		++count;
-	return count;
-}
-
-int Board::detect_vertical(int player, int index) const
-{
-	int count = 1;
-	if (index >= size && spots[index - size] == player)
-		return 0;
-	for (int i = 1; i < 5 && index + i * size < int(spots.size()) && spots[index + i * size] == player; ++i)
-		++count;
-	return count;
+	return condition;
 }

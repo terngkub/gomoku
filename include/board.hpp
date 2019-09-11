@@ -1,32 +1,31 @@
 #pragma once
 #include <set>
-#include <vector>
+#include <stack>
 #include <unordered_map>
-#include <list>
+#include <vector>
 
 enum Condition
 {
-	playing = 0,
-	one_win = 1,
-	two_win = 2,
-	draw = 3
+	Playing = 0,
+	PlayerOneWin = 1,
+	PlayerTwoWin = 2,
+	Draw = 3
 };
 
 struct SequenceAction
 {
 	bool is_combined;
-	int added_index;
-	int deleted_index;
+	int head_index;
+	int combined_index;
+	int combined_length;
 };
 
 struct Action
 {
 	int play;
-	std::vector<int> valid;
-	SequenceAction vertical_action;
-	SequenceAction horizontal_action;
-	SequenceAction downward_diagonal_action;
-	SequenceAction upward_diagonal_action;
+	std::set<int> valid_spots;
+	SequenceAction seq_x;
+	SequenceAction seq_y;
 };
 
 class Board
@@ -34,65 +33,42 @@ class Board
 public:
 	Board(int size);
 
-	void play(int action, int player);
-	void redo(int action, int player);
+	void play(int index, int player);
+	void undo();
 	int heuristic(int player, int depth_score) const;
-	std::set<int> next(int player) const;
+	std::set<int> const & next(int player) const;
 	void print() const;
-	bool is_empty_spot(int spot) const;
-
+	bool is_valid_spot(int index) const;
 	bool is_end() const;
-	bool is_full() const;
-	bool is_win(int player) const;
-	int detect_horizontal(int player, int index) const;
-	int detect_vertical(int player, int index) const;
+	Condition get_condition() const;
 
 private:
 	int size;
 	std::vector<int> spots;
+	Condition condition;
+	std::stack<Action> history;
 
-	// ***** Additional ******
+	// ***** Valid Spots ******
+	std::set<int> valid_spots;
+	std::set<int> update_valid_spots(int index, int player);
+	void undo_valid_spots(std::set<int> const & action_valid_spots);
 
-	// store played and valid move
-	std::set<int> played;
-	std::set<int> valid;
+
+	// ***** Sequence *******
 
 	// store sequence length <head of sequence, length> used for detect
-	std::unordered_map<int, int> vertical_sequence;
-	std::unordered_map<int, int> horizontal_sequence;
-	std::unordered_map<int, int> downward_diagonal_sequence;
-	std::unordered_map<int, int> upward_diagonal_sequence;
+	std::unordered_map<int, int> seq_x;
+	std::unordered_map<int, int> seq_y;
 
 	// functions to find the head of sequence, combine with map to find sequence length
-	int get_vertical_head(int index) const;
-	int get_horizontal_head(int index) const;
-	int get_downward_diagonal_head(int index) const;
-	int get_upward_diagonal_head(int index) const;
+	int get_head_x(int index) const;
+	int get_head_y(int index) const;
 
-	// enum condition, used to quickly determine state of the game
-	Condition condition;
+	// update sequence
+	SequenceAction update_seq_x(int index);
+	SequenceAction update_seq_y(int index);
 
-	// history
-	std::list<Action> history;
+	// undo sequence
+	void undo_seq_x(SequenceAction const & seq_action);
+	void undo_seq_y(SequenceAction const & seq_action);
 };
-
-// note
-// head = get_horizontal_head(index)
-// check if there is a next head of sequence or not
-
-// if not
-// normal case
-// map[index] += 1;
-
-// if yes
-// combine case
-// tmp_count = map.at(index + 1)
-// map.remove(index+1)
-// map[head] += 1 + tmp_count;
-
-// how to store this sequence?
-// for normal case
-// * incremented head
-// for combine case
-// * delete head and count
-// * incremented head

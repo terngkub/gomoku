@@ -11,6 +11,8 @@ Minimax::Minimax(Board board, int depth, int ai) :
 
 int Minimax::operator()()
 {
+	if (board.is_first_turn())
+		return 180;
 	minimax(ai, max_depth, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
 	return best_action;
 }
@@ -39,6 +41,7 @@ int Minimax::minimax(int player, int depth, int alpha, int beta)
 			})
 		: std::function<void(int const, int const)>([&](int const new_score, int const action)
 			{
+				(void)action;
 				if (new_score < base_score)
 					base_score = new_score;
 				beta = std::min(beta, new_score);

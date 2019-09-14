@@ -7,9 +7,11 @@ CFLAGS		=	-Wall -Wextra -Werror $(CPP_VERSION)
 # Project Settings
 NAME		=	gomoku
 HEADER		=	board.hpp \
+				flag.hpp \
 				game.hpp \
 				minimax.hpp
 FILE		=	board.cpp \
+				flag.cpp \
 				game.cpp \
 				main.cpp \
 				minimax.cpp

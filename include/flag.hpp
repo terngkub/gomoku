@@ -1,7 +1,5 @@
-#ifndef FLAG_HPP
-# define FLAG_HPP
-
-# include <memory>
+#pragma once
+#include <memory>
 # include <string>
 # include <vector>
 
@@ -39,5 +37,3 @@ public:
     std::shared_ptr<std::string>        optString(std::string, std::string, std::string);
     void                                parse(int &, char const **&);
 };
-
-#endif /* FLAG_HPP */

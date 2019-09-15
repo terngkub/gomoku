@@ -6,6 +6,14 @@
 #include <unordered_map>
 #include <vector>
 
+enum Condition
+{
+	Playing = 0,
+	PlayerOneWin = 1,
+	PlayerTwoWin = 2,
+	Draw = 3
+};
+
 struct SequenceInfo
 {
 	SequenceInfo() : len_me{0}, len_op{0}, space_me{0}, space_op_one{0}, space_op_two{0} {}
@@ -14,14 +22,6 @@ struct SequenceInfo
 	int space_me;
 	int space_op_one;
 	int space_op_two;
-};
-
-enum Condition
-{
-	Playing = 0,
-	PlayerOneWin = 1,
-	PlayerTwoWin = 2,
-	Draw = 3
 };
 
 struct SequenceAction
@@ -65,56 +65,63 @@ private:
 
 	// ***** Valid Spots ******
 	std::set<int> valid_spots;
+
 	std::set<int> update_valid_spots(int index, int player);
 	void insert_if_valid(std::set<int> & actions, int index);
 	void undo_valid_spots(std::set<int> const & action_valid_spots);
 
 	// ****** Heuristic ******
-
 	int heuristic;
+
 	void update_heuristic(int index, int player, Action & action);
+	template<typename T>
+	void update_heuristic_sequence(int index, int player, Action & action);
+	template<typename T>
+	SequenceInfo explore_sequence(int index, int player, bool inc);
 	void update_heuristic_delta(SequenceInfo & one, SequenceInfo & two, int player, Action & action);
+	int get_score(int len, int space_one, int space_two);
 	void undo_heuristic(Action const & action);
 	
-	template<typename T>
-	void update_heuristic_sequence(int index, int player, Action & action)
-	{
-		auto one = explore_sequence<T>(index, player, true);
-		auto two = explore_sequence<T>(index, player, false);
-		update_heuristic_delta(one, two, player, action);
-	}
+};
 
-	template<typename T>
-	SequenceInfo explore_sequence(int index, int player, bool inc)
-	{
-		T i{index, 19, inc};
-		SequenceInfo info{};
+template<typename T>
+void Board::update_heuristic_sequence(int index, int player, Action & action)
+{
+	auto one = explore_sequence<T>(index, player, true);
+	auto two = explore_sequence<T>(index, player, false);
+	update_heuristic_delta(one, two, player, action);
+}
 
-		i.move();
-		if (!i.check())
-		{
-			return info;
-		}
-		if (spots[i.val()] == player)
-		{
-			for (; i.check() && spots[i.val()] == player; i.move())
-				++info.len_me;
-			for (; i.check() && spots[i.val()] == 0; i.move())
-				++info.space_me;
-		}
-		else
-		{
-			for (; i.check() && spots[i.val()] == 0; i.move())
-			{
-				++info.space_me;
-				++info.space_op_one;
-			}
-			int opponent = player ^ 3;
-			for (; i.check() && spots[i.val()] == opponent; i.move())
-				++info.len_op;
-			for (; i.check() && spots[i.val()] == 0; i.move())
-				++info.space_op_two;
-		}
+template<typename T>
+SequenceInfo Board::explore_sequence(int index, int player, bool inc)
+{
+	T i{index, 19, inc};
+	SequenceInfo info{};
+
+	i.move();
+	if (!i.check())
+	{
 		return info;
 	}
-};
+	if (spots[i.val()] == player)
+	{
+		for (; i.check() && spots[i.val()] == player; i.move())
+			++info.len_me;
+		for (; i.check() && spots[i.val()] == 0; i.move())
+			++info.space_me;
+	}
+	else
+	{
+		for (; i.check() && spots[i.val()] == 0; i.move())
+		{
+			++info.space_me;
+			++info.space_op_one;
+		}
+		int opponent = player ^ 3;
+		for (; i.check() && spots[i.val()] == opponent; i.move())
+			++info.len_op;
+		for (; i.check() && spots[i.val()] == 0; i.move())
+			++info.space_op_two;
+	}
+	return info;
+}

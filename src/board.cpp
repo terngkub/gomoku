@@ -55,7 +55,6 @@ std::set<int> Board::update_valid_spots(int index, int player)
 	(void)player;
 	std::set<int> actions;
 
-
 	// top >> (middle, left, right)
 	if (index / size != 0)
 	{
@@ -136,8 +135,6 @@ void Board::print() const
 			std::cout << " ";
 	}
 	std::cout << "\n";
-
-	std::cout << "heuristic: " << heuristic << "\n";
 }
 
 bool Board::is_first_turn() const
@@ -172,7 +169,39 @@ void Board::update_heuristic(int index, int player, Action & action)
 	update_heuristic_sequence<IndexD>(index, player, action);
 }
 
-int get_score(int len, int space_one, int space_two)
+void Board::update_heuristic_delta(SequenceInfo & one, SequenceInfo & two, int player, Action & action)
+{
+	// increase my score
+	auto space_one = two.len_me > 0 ? 1 : two.space_me + 1;
+	auto space_two = one.len_me > 0 ? 1 : one.space_me + 1;
+	auto old_me = get_score(one.len_me, one.space_me, space_one) + get_score(two.len_me, two.space_me, space_two);
+	auto new_me = get_score(one.len_me + two.len_me + 1, one.space_me, two.space_me);
+	auto delta_me = new_me - old_me;
+
+	// reduce opponent score
+	auto old_op = get_score(one.len_op, one.space_op_one + two.space_op_one + 1, one.space_op_two) + get_score(two.len_op, two.space_op_one + one.space_op_one + 1, two.space_op_two);
+	auto new_op = get_score(one.len_op, one.space_op_one, one.space_op_two) + get_score(two.len_op, two.space_op_one, two.space_op_two);
+	auto delta_op = new_op - old_op;
+
+	if (one.len_me + two.len_me + 1 > 4)
+	{
+		action.is_end = true;
+		condition = player == 1 ? Condition::PlayerOneWin : Condition::PlayerTwoWin;
+	}
+
+	if (player == 1)
+	{
+		heuristic += (delta_me - delta_op);
+		action.delta_heuristic += (delta_me - delta_op);
+	}
+	else
+	{
+		heuristic -= (delta_me - delta_op);
+		action.delta_heuristic -= (delta_me - delta_op);
+	}
+}
+
+int Board::get_score(int len, int space_one, int space_two)
 {
 	static const std::unordered_map<int, int> len_score
 	{
@@ -194,46 +223,7 @@ int get_score(int len, int space_one, int space_two)
 	return len_score.at(5);
 }
 
-void Board::update_heuristic_delta(SequenceInfo & one, SequenceInfo & two, int player, Action & action)
-{
-	// increase my score
-	auto space_one = two.len_me > 0 ? 1 : two.space_me + 1;
-	auto space_two = one.len_me > 0 ? 1 : one.space_me + 1;
-	auto old_me = get_score(one.len_me, one.space_me, space_one) + get_score(two.len_me, two.space_me, space_two);
-	auto new_me = get_score(one.len_me + two.len_me + 1, one.space_me, two.space_me);
-	auto delta_me = new_me - old_me;
-	// zero or positive
-
-	// reduce opponent score
-	auto old_op = get_score(one.len_op, one.space_op_one + two.space_op_one + 1, one.space_op_two) + get_score(two.len_op, two.space_op_one + one.space_op_one + 1, two.space_op_two);
-	auto new_op = get_score(one.len_op, one.space_op_one, one.space_op_two) + get_score(two.len_op, two.space_op_one, two.space_op_two);
-	auto delta_op = new_op - old_op;
-	// zero or negative
-
-	if (one.len_me + two.len_me + 1 > 4)
-	{
-		action.is_end = true;
-		condition = player == 1 ? Condition::PlayerOneWin : Condition::PlayerTwoWin;
-	}
-
-	// std::cout << "update before " << heuristic << "\n";
-	// std::cout << "delta " << delta_me + delta_op << "\n";
-	if (player == 1)
-	{
-		heuristic += (delta_me - delta_op);
-		action.delta_heuristic += (delta_me - delta_op);
-	}
-	else
-	{
-		heuristic -= (delta_me - delta_op);
-		action.delta_heuristic -= (delta_me - delta_op);
-	}
-	// std::cout << "update after " << heuristic << "\n";
-}
-
 void Board::undo_heuristic(Action const & action)
 {
-	// std::cout << "undo before " << heuristic << "\n";
 	heuristic -= action.delta_heuristic;
-	// std::cout << "undo after " << heuristic << "\n";
 }

@@ -1,4 +1,6 @@
 #pragma once
+#include "index.hpp"
+#include <iostream>
 #include <set>
 #include <stack>
 #include <unordered_map>
@@ -12,6 +14,16 @@ enum Condition
 	Draw = 3
 };
 
+struct SequenceInfo
+{
+	SequenceInfo() : len_me{0}, len_op{0}, space_me{0}, space_op_one{0}, space_op_two{0} {}
+	int len_me;
+	int len_op;
+	int space_me;
+	int space_op_one;
+	int space_op_two;
+};
+
 struct SequenceAction
 {
 	bool is_combined;
@@ -22,11 +34,12 @@ struct SequenceAction
 
 struct Action
 {
+	Action(): play{0}, play_on_valid_spot{false}, valid_spots{}, delta_heuristic{0}, is_end{false} {}
 	int play;
 	bool play_on_valid_spot;
 	std::set<int> valid_spots;
-	SequenceAction seq_x;
-	SequenceAction seq_y;
+	double delta_heuristic;
+	bool is_end;
 };
 
 class Board
@@ -36,7 +49,7 @@ public:
 
 	void play(int index, int player);
 	void undo();
-	int heuristic(int player, int depth_score) const;
+	int get_heuristic(int player) const;
 	std::set<int> const & next(int player) const;
 	void print() const;
 	bool is_first_turn() const;
@@ -52,26 +65,63 @@ private:
 
 	// ***** Valid Spots ******
 	std::set<int> valid_spots;
+
 	std::set<int> update_valid_spots(int index, int player);
 	void insert_if_valid(std::set<int> & actions, int index);
 	void undo_valid_spots(std::set<int> const & action_valid_spots);
 
+	// ****** Heuristic ******
+	int heuristic;
 
-	// ***** Sequence *******
-
-	// store sequence length <head of sequence, length> used for detect
-	std::unordered_map<int, int> seq_x;
-	std::unordered_map<int, int> seq_y;
-
-	// functions to find the head of sequence, combine with map to find sequence length
-	int get_head_x(int index) const;
-	int get_head_y(int index) const;
-
-	// update sequence
-	SequenceAction update_seq_x(int index);
-	SequenceAction update_seq_y(int index);
-
-	// undo sequence
-	void undo_seq_x(SequenceAction const & seq_action);
-	void undo_seq_y(SequenceAction const & seq_action);
+	void update_heuristic(int index, int player, Action & action);
+	template<typename T>
+	void update_heuristic_sequence(int index, int player, Action & action);
+	template<typename T>
+	SequenceInfo explore_sequence(int index, int player, bool inc);
+	void update_heuristic_delta(SequenceInfo & one, SequenceInfo & two, int player, Action & action);
+	int get_score(int len, int space_one, int space_two);
+	void undo_heuristic(Action const & action);
+	
 };
+
+template<typename T>
+void Board::update_heuristic_sequence(int index, int player, Action & action)
+{
+	auto one = explore_sequence<T>(index, player, true);
+	auto two = explore_sequence<T>(index, player, false);
+	update_heuristic_delta(one, two, player, action);
+}
+
+template<typename T>
+SequenceInfo Board::explore_sequence(int index, int player, bool inc)
+{
+	T i{index, 19, inc};
+	SequenceInfo info{};
+
+	i.move();
+	if (!i.check())
+	{
+		return info;
+	}
+	if (spots[i.val()] == player)
+	{
+		for (; i.check() && spots[i.val()] == player; i.move())
+			++info.len_me;
+		for (; i.check() && spots[i.val()] == 0; i.move())
+			++info.space_me;
+	}
+	else
+	{
+		for (; i.check() && spots[i.val()] == 0; i.move())
+		{
+			++info.space_me;
+			++info.space_op_one;
+		}
+		int opponent = player ^ 3;
+		for (; i.check() && spots[i.val()] == opponent; i.move())
+			++info.len_op;
+		for (; i.check() && spots[i.val()] == 0; i.move())
+			++info.space_op_two;
+	}
+	return info;
+}

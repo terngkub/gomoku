@@ -20,7 +20,7 @@ int Minimax::operator()()
 int Minimax::minimax(int player, int depth, int alpha, int beta)
 {
 	if (depth == 0 || board.is_end())
-		return board.heuristic(ai, depth);
+		return board.get_heuristic(ai);
 
 	auto actions = board.next(player);
 

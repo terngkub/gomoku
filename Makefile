@@ -2,15 +2,18 @@
 # Compiler Settings
 CC			=	g++
 CPP_VERSION	=	-std=c++1z
-CFLAGS		=	-Wall -Wextra -Werror $(CPP_VERSION)
+#DEBUG		=	-g3 -fsanitize=address
+CFLAGS		=	-Wall -Wextra -Werror $(CPP_VERSION) $(DEBUG)
 
 # Project Settings
 NAME		=	gomoku
 HEADER		=	board.hpp \
+				index.hpp \
 				flag.hpp \
 				game.hpp \
 				minimax.hpp
 FILE		=	board.cpp \
+				index.cpp \
 				flag.cpp \
 				game.cpp \
 				main.cpp \

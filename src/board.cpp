@@ -6,6 +6,7 @@
 #include <unordered_map>
 
 Board::Board(int size) :
+	bs{},
 	size{size},
 	spots(size * size, 0),
 	condition{Condition::Playing},
@@ -17,6 +18,7 @@ Board::Board(int size) :
 void Board::play(int index, int player)
 {
 	spots[index] = player;
+	(player == 1) ? bs.set(index * 2 + 1) : bs.set(index * 2);
 
 	Action action;
 	action.play = index;
@@ -39,6 +41,8 @@ void Board::undo()
 	auto action = history.top();
 	history.pop();
 	spots[action.play] = 0;
+	bs.reset(action.play * 2);
+	bs.reset(action.play * 2 + 1);
 	if (action.play_on_valid_spot)
 		valid_spots.insert(action.play);
 	if (action.is_end)
@@ -209,7 +213,7 @@ int Board::get_score(int len, int space_one, int space_two)
 		{2, 10},
 		{3, 100},
 		{4, 1000},
-		{5, 10000}
+		{5, 100000}
 	};
 	auto space_max = 5 - len;
 	auto s1 = space_one < space_max ? space_one : space_max;

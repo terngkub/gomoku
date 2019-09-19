@@ -1,5 +1,6 @@
 #pragma once
 #include "index.hpp"
+#include <bitset>
 #include <iostream>
 #include <set>
 #include <stack>
@@ -46,6 +47,7 @@ class Board
 {
 public:
 	Board(int size);
+    std::bitset<722> bs;
 
 	void play(int index, int player);
 	void undo();

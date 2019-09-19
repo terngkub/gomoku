@@ -6,7 +6,9 @@
 Minimax::Minimax(Board board, int depth, int ai) :
 	board{board},
 	max_depth{depth},
-	ai{ai}
+	ai{ai},
+	visited_map{},
+	complexity{0}
 {}
 
 int Minimax::operator()()
@@ -14,11 +16,14 @@ int Minimax::operator()()
 	if (board.is_first_turn())
 		return 180;
 	minimax(ai, max_depth, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
+	std::cout << "complexity: " << complexity << "\n";
 	return best_action;
 }
 
 int Minimax::minimax(int player, int depth, int alpha, int beta)
 {
+	++complexity;
+
 	if (depth == 0 || board.is_end())
 	{
 		return board.get_heuristic(ai);
@@ -54,7 +59,16 @@ int Minimax::minimax(int player, int depth, int alpha, int beta)
 	for (auto action : actions)
 	{
 		board.play(action, player);
-		auto new_score = minimax(player ^ 3, depth - 1, alpha, beta);
+		int new_score;
+		if (visited_map.find(board.bs) != visited_map.end())
+		{
+			new_score = visited_map[board.bs];
+		}
+		else
+		{
+			new_score = minimax(player ^ 3, depth - 1, alpha, beta);
+			visited_map[board.bs] = new_score;
+		}
 		board.undo();
 		update_score(new_score, action);
 		if (beta <= alpha) break;

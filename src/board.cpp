@@ -95,8 +95,7 @@ void Board::undo_valid_spots(std::set<int> const & action_valid_spots)
 
 int Board::get_heuristic(int player) const
 {
-	(void)player;
-	return heuristic;
+	return player == 1 ? heuristic : -heuristic;
 }
 
 std::set<int> const & Board::next(int player) const

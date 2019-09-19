@@ -40,11 +40,11 @@ void IndexU::dec() { i = i + width - 1; }
 void IndexU::inc() { i = i - width + 1; }
 bool IndexU::check_floor() const
 {
-	return i >= 0 && i % width != 0;
+	return i < size && i % width != 0;
 }
 bool IndexU::check_ceiling() const
 {
-	return i < size && i % width != width - 1;
+	return i >= 0 && i % width != width - 1;
 }
 
 IndexD::IndexD(int i, int width, bool inc) : Index(i, width, inc) {}

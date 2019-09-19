@@ -213,7 +213,7 @@ int Board::get_score(int len, int space_one, int space_two)
 		{2, 10},
 		{3, 100},
 		{4, 1000},
-		{5, 100000}
+		{5, 10000}
 	};
 	auto space_max = 5 - len;
 	auto s1 = space_one < space_max ? space_one : space_max;

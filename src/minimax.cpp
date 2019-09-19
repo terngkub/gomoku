@@ -3,6 +3,14 @@
 #include <iostream>
 #include <functional>
 
+struct ActionComparator
+{
+	bool operator()(std::pair<int, int> const & lhs, std::pair<int, int> const & rhs)
+	{
+		return lhs.second > rhs.second;
+	}
+};
+
 Minimax::Minimax(Board board, int depth, int ai) :
 	board{board},
 	max_depth{depth},
@@ -29,7 +37,7 @@ int Minimax::minimax(int player, int depth, int alpha, int beta)
 		return board.get_heuristic(ai);
 	}
 
-	auto actions = board.next(player);
+	auto nexts = board.next(player);
 
 	int base_score = (player == ai)
 		? std::numeric_limits<int>::min()
@@ -56,9 +64,18 @@ int Minimax::minimax(int player, int depth, int alpha, int beta)
 				beta = std::min(beta, new_score);
 			});
 
-	for (auto action : actions)
+	std::set<std::pair<int, int>, ActionComparator> actions;
+	for (auto next : nexts)
 	{
-		board.play(action, player);
+		board.play(next, player);
+		auto h = board.get_heuristic(player);
+		actions.insert({next, h});
+		board.undo();
+	}
+
+	for (auto & action : actions)
+	{
+		board.play(action.first, player);
 		int new_score;
 		if (visited_map.find(board.bs) != visited_map.end())
 		{
@@ -70,7 +87,7 @@ int Minimax::minimax(int player, int depth, int alpha, int beta)
 			visited_map[board.bs] = new_score;
 		}
 		board.undo();
-		update_score(new_score, action);
+		update_score(new_score, action.first);
 		if (beta <= alpha) break;
 	}
 	return base_score;

@@ -3,11 +3,9 @@
 #include <bitset>
 #include <iostream>
 #include <set>
-#include <stack>
-#include <unordered_map>
 #include <vector>
 
-enum Condition
+enum class Condition
 {
 	Playing = 0,
 	PlayerOneWin = 1,
@@ -15,9 +13,9 @@ enum Condition
 	Draw = 3
 };
 
-struct SequenceInfo
+struct Sequence
 {
-	SequenceInfo() : len_me{0}, len_op{0}, space_me{0}, space_op_one{0}, space_op_two{0} {}
+	Sequence() : len_me{0}, len_op{0}, space_me{0}, space_op_one{0}, space_op_two{0} {}
 	int len_me;
 	int len_op;
 	int space_me;
@@ -25,105 +23,124 @@ struct SequenceInfo
 	int space_op_two;
 };
 
-struct SequenceAction
-{
-	bool is_combined;
-	int head_index;
-	int combined_index;
-	int combined_length;
-};
-
-struct Action
-{
-	Action(): play{0}, play_on_valid_spot{false}, valid_spots{}, delta_heuristic{0}, is_end{false} {}
-	int play;
-	bool play_on_valid_spot;
-	std::set<int> valid_spots;
-	double delta_heuristic;
-	bool is_end;
-};
-
 class Board
 {
 public:
-	Board(int size);
-    std::bitset<722> bs;
 
-	void play(int index, int player);
-	void undo();
-	int get_heuristic(int player) const;
-	std::set<int> const & next(int player) const;
-	void print() const;
-	bool is_first_turn() const;
-	bool is_valid_spot(int index) const;
-	bool is_end() const;
-	Condition get_condition() const;
+	// Constructor - custom
+	Board() = delete;
+	Board(int width);
+
+	// Destructor - default
+	~Board() = default;
+
+	// Copy - default
+	Board(Board const &) = default;
+	Board & operator=(Board const &) = default;
+
+	// Move - default
+	Board(Board &&) = default;
+	Board & operator=(Board &&) = default;
+
+	// ****** Getters ******
+
+	int						get_heuristic(int player) const;
+	Condition				get_condition() const;
+
+
+	// Checkers
+
+	bool					is_valid(int index, int player) const;
+	bool					is_end(int player) const;
+
+
+	// ****** Public Methods ******
+
+	Board					play(int index, int player);
+	std::set<int> const &	get_nexts(int player) const;
+	void					print() const;
+
 
 private:
-	int size;
-	std::vector<int> spots;
-	Condition condition;
-	std::stack<Action> history;
+
+	int						width;
+	int						size;
+	std::vector<int>		indexes;
+	Condition				condition;
+	int						heuristic;
+	std::set<int>			valid_one;
+	std::set<int>			valid_two;
+
+	// ****** Printer ******
+
+	void					print_board_pieces() const;
+	void					print_board_indexes_row() const;
+
 
 	// ***** Valid Spots ******
-	std::set<int> valid_spots;
 
-	std::set<int> update_valid_spots(int index, int player);
-	void insert_if_valid(std::set<int> & actions, int index);
-	void undo_valid_spots(std::set<int> const & action_valid_spots);
+	void					update_valid(int index, int player);
+	void					remove_valid(int index);
+	void					update_valid_top(int index, int player);
+	void					update_valid_middle(int index, int player);
+	void					update_valid_bottom(int index, int player);
+	void					insert_valid(int index, int player);
+
 
 	// ****** Heuristic ******
-	int heuristic;
 
-	void update_heuristic(int index, int player, Action & action);
+	void					update_heuristic(int index, int player);
 	template<typename T>
-	void update_heuristic_sequence(int index, int player, Action & action);
+	void					update_heuristic_sequence(int index, int player);
 	template<typename T>
-	SequenceInfo explore_sequence(int index, int player, bool inc);
-	void update_heuristic_delta(SequenceInfo & one, SequenceInfo & two, int player, Action & action);
-	int get_score(int len, int space_one, int space_two);
-	void undo_heuristic(Action const & action);
-	
+	Sequence				explore_sequence(int index, int player, bool inc);
+	void					update_heuristic_delta(Sequence & inc, Sequence & dec, int player);
+	int						get_score(int len, int space_one, int space_two);
 };
 
+
 template<typename T>
-void Board::update_heuristic_sequence(int index, int player, Action & action)
+void Board::update_heuristic_sequence(int index, int player)
 {
-	auto one = explore_sequence<T>(index, player, true);
-	auto two = explore_sequence<T>(index, player, false);
-	update_heuristic_delta(one, two, player, action);
+	auto inc_seq = explore_sequence<T>(index, player, true);
+	auto dec_seq = explore_sequence<T>(index, player, false);
+	update_heuristic_delta(inc_seq, dec_seq, player);
 }
 
 template<typename T>
-SequenceInfo Board::explore_sequence(int index, int player, bool inc)
+Sequence Board::explore_sequence(int index, int player, bool inc)
 {
-	T i{index, 19, inc};
-	SequenceInfo info{};
+	T curr_idx{index, width, inc};
+	Sequence seq{};
 
-	i.move();
-	if (!i.check())
+	curr_idx.move();
+	if (!curr_idx.check())
+		return seq;
+
+	// There are two type of sequences:
+	// 1. my pieces, space => lead to increase/combination of sequence length
+	// 2. space, opponent, space => lead to opponent space reduction.
+
+	if (indexes[curr_idx.val()] == player)
 	{
-		return info;
-	}
-	if (spots[i.val()] == player)
-	{
-		for (; i.check() && spots[i.val()] == player; i.move())
-			++info.len_me;
-		for (; i.check() && spots[i.val()] == 0; i.move())
-			++info.space_me;
+		for (; curr_idx.check() && indexes[curr_idx.val()] == player; curr_idx.move())
+			++seq.len_me;
+		for (; curr_idx.check() && indexes[curr_idx.val()] == 0; curr_idx.move())
+			++seq.space_me;
 	}
 	else
 	{
-		for (; i.check() && spots[i.val()] == 0; i.move())
+		for (; curr_idx.check() && indexes[curr_idx.val()] == 0; curr_idx.move())
 		{
-			++info.space_me;
-			++info.space_op_one;
+			++seq.space_me;
+			++seq.space_op_one;
 		}
 		int opponent = player ^ 3;
-		for (; i.check() && spots[i.val()] == opponent; i.move())
-			++info.len_op;
-		for (; i.check() && spots[i.val()] == 0; i.move())
-			++info.space_op_two;
+		for (; curr_idx.check() && indexes[curr_idx.val()] == opponent; curr_idx.move())
+			++seq.len_op;
+		for (; curr_idx.check() && indexes[curr_idx.val()] == 0; curr_idx.move())
+			++seq.space_op_two;
 	}
-	return info;
+
+	return seq;
 }

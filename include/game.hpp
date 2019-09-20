@@ -24,7 +24,7 @@ private:
 
     enum type           get_player_mode() const;
     int                 get_player_number() const;
-    int                 get_player_input();
+    int                 get_player_input(int player) const;
     void                next_player();
-    void                print_condition();
+    void                print_condition() const;
 };

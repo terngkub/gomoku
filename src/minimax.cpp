@@ -3,41 +3,27 @@
 #include <iostream>
 #include <functional>
 
-struct ActionComparator
-{
-	bool operator()(std::pair<int, int> const & lhs, std::pair<int, int> const & rhs)
-	{
-		return lhs.second > rhs.second;
-	}
-};
-
-Minimax::Minimax(Board board, int depth, int ai) :
-	board{board},
+Minimax::Minimax(int depth, int ai) :
 	max_depth{depth},
 	ai{ai},
-	visited_map{},
 	complexity{0}
 {}
 
-int Minimax::operator()()
+int Minimax::operator()(Board & board)
 {
-	if (board.is_first_turn())
-		return 180;
-	minimax(ai, max_depth, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
-	std::cout << "complexity: " << complexity << "\n";
+	minimax(board, ai, max_depth, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
+	std::cout << "Complexity: " << complexity << "\n";
 	return best_action;
 }
 
-int Minimax::minimax(int player, int depth, int alpha, int beta)
+int Minimax::minimax(Board & board, int player, int depth, int alpha, int beta)
 {
 	++complexity;
 
-	if (depth == 0 || board.is_end())
-	{
+	if (depth == 0 || board.is_end(player))
 		return board.get_heuristic(ai);
-	}
 
-	auto nexts = board.next(player);
+	auto nexts = board.get_nexts(player);
 
 	int base_score = (player == ai)
 		? std::numeric_limits<int>::min()
@@ -64,29 +50,18 @@ int Minimax::minimax(int player, int depth, int alpha, int beta)
 				beta = std::min(beta, new_score);
 			});
 
-	std::set<std::pair<int, int>, ActionComparator> actions;
+	auto cmp = [&player](auto const & lhs, auto const & rhs){ return lhs.second.get_heuristic(player) > rhs.second.get_heuristic(player); };
+	std::set<std::pair<int, Board>, decltype(cmp)> actions{cmp};
 	for (auto next : nexts)
 	{
-		board.play(next, player);
-		auto h = board.get_heuristic(player);
-		actions.insert({next, h});
-		board.undo();
+		auto b = board.play(next, player);
+		actions.insert({next, std::move(b)});
 	}
 
-	for (auto & action : actions)
+	for (auto action : actions)
 	{
-		board.play(action.first, player);
 		int new_score;
-		if (visited_map.find(board.bs) != visited_map.end())
-		{
-			new_score = visited_map[board.bs];
-		}
-		else
-		{
-			new_score = minimax(player ^ 3, depth - 1, alpha, beta);
-			visited_map[board.bs] = new_score;
-		}
-		board.undo();
+		new_score = minimax(action.second, player ^ 3, depth - 1, alpha, beta);
 		update_score(new_score, action.first);
 		if (beta <= alpha) break;
 	}

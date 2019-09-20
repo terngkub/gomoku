@@ -5,155 +5,23 @@
 #include <iostream>
 #include <unordered_map>
 
-Board::Board(int size) :
-	bs{},
-	size{size},
-	spots(size * size, 0),
+// ****** Constructor ******
+
+Board::Board(int width) :
+	width{width},
+	size{width * width},
+	indexes(size, 0),
 	condition{Condition::Playing},
-	history{},
-	valid_spots{},
-	heuristic{0}
+	heuristic{0},
+	valid_one{size / 2},
+	valid_two{size / 2}
 {}
 
-void Board::play(int index, int player)
-{
-	spots[index] = player;
-	(player == 1) ? bs.set(index * 2 + 1) : bs.set(index * 2);
-
-	Action action;
-	action.play = index;
-
-	// TODO move this to function and send action as ref
-	action.play_on_valid_spot = false;
-	if (valid_spots.find(index) != valid_spots.end())
-	{
-		action.play_on_valid_spot = true;
-		valid_spots.erase(index);
-	}
-	action.valid_spots = update_valid_spots(index, player);
-
-	update_heuristic(index, player, action);
-	history.push(action);
-}
-
-void Board::undo()
-{
-	auto action = history.top();
-	history.pop();
-	spots[action.play] = 0;
-	bs.reset(action.play * 2);
-	bs.reset(action.play * 2 + 1);
-	if (action.play_on_valid_spot)
-		valid_spots.insert(action.play);
-	if (action.is_end)
-		condition = Condition::Playing;
-	undo_valid_spots(action.valid_spots);
-	undo_heuristic(action);
-}
-
-
-// ****** Valid Spots ******
-
-std::set<int> Board::update_valid_spots(int index, int player)
-{
-	(void)player;
-	std::set<int> actions;
-
-	// top >> (middle, left, right)
-	if (index / size != 0)
-	{
-		insert_if_valid(actions, index - size);
-		if (index % size != 0) insert_if_valid(actions, index - size - 1);
-		if (index % size != size - 1) insert_if_valid(actions, index - size + 1);
-	}
-
-	// middle (left, right)
-	if (index % size != 0) insert_if_valid(actions, index - 1);
-	if (index % size != size - 1) insert_if_valid(actions, index + 1);
-
-	// bottom >> (middle, left, right)
-	if (index / size != size - 1)
-	{
-		insert_if_valid(actions, index + size);
-		if (index % size != 0) insert_if_valid(actions, index + size - 1);
-		if (index % size != size - 1) insert_if_valid(actions, index + size + 1);
-	}
-
-	return actions;
-}
-
-void Board::insert_if_valid(std::set<int> & actions, int index)
-{
-	if (spots[index] == 0 && valid_spots.find(index) == valid_spots.end())
-	{
-		valid_spots.insert(index);
-		actions.insert(index);
-	}
-}
-
-void Board::undo_valid_spots(std::set<int> const & action_valid_spots)
-{
-	for (auto spot : action_valid_spots)
-		valid_spots.erase(spot);
-}
+// ****** Getters ******
 
 int Board::get_heuristic(int player) const
 {
 	return player == 1 ? heuristic : -heuristic;
-}
-
-std::set<int> const & Board::next(int player) const
-{
-	(void)player;
-	return valid_spots;
-}
-
-void Board::print() const
-{
-	std::cout << "  ";
-	for (auto i = 1; i <= size; ++i)
-	{
-		std::cout << (i % 10);
-		if (i != size)
-			std::cout << " ";
-	}
-	std::cout << "\n";
-
-	for (auto i = 0; i < int(spots.size()); ++i)
-	{
-		if		(i % size == 0)			std::cout << ((i / size + 1) % 10) << " ";
-		if		(spots[i] == 1) 		std::cout << "o";
-		else if	(spots[i] == 2) 		std::cout << "x";
-		else							std::cout << "-";
-
-		if		(i % size != size - 1)	std::cout << " ";
-		else							std::cout << " " << ((i / size + 1) % 10) << "\n";
-	}
-
-	std::cout << "  ";
-	for (auto i = 1; i <= size; ++i)
-	{
-		std::cout << (i % 10);
-		if (i != size)
-			std::cout << " ";
-	}
-	std::cout << "\n";
-}
-
-bool Board::is_first_turn() const
-{
-	return history.size() == 0;
-}
-
-bool Board::is_valid_spot(int index) const
-{
-	return spots[index] == 0;
-}
-
-bool Board::is_end() const
-{
-	// TODO has to check that there is no valid spot left
-	return condition != Condition::Playing;
 }
 
 Condition Board::get_condition() const
@@ -162,17 +30,168 @@ Condition Board::get_condition() const
 }
 
 
-// ****** Heuristic ******
+// ****** Checkers ******
 
-void Board::update_heuristic(int index, int player, Action & action)
+bool Board::is_valid(int index, int player) const
 {
-	update_heuristic_sequence<IndexX>(index, player, action);
-	update_heuristic_sequence<IndexY>(index, player, action);
-	update_heuristic_sequence<IndexU>(index, player, action);
-	update_heuristic_sequence<IndexD>(index, player, action);
+	//return player == 1 ? valid_one.find(index) != valid_one.end() : valid_two.find(index) != valid_two.end();
+	(void)player;
+	return indexes[index] == 0;
 }
 
-void Board::update_heuristic_delta(SequenceInfo & one, SequenceInfo & two, int player, Action & action)
+bool Board::is_end(int player) const
+{
+	if (condition != Condition::Playing)
+		return true;
+	return player == 1 ? valid_one.size() == 0 : valid_two.size() == 0;
+}
+
+
+// ****** Public Methods ******
+
+Board Board::play(int index, int player)
+{
+	Board new_board{*this};
+	new_board.indexes[index] = player;
+	new_board.update_valid(index, player);
+	new_board.update_heuristic(index, player);
+	return new_board;
+}
+
+std::set<int> const & Board::get_nexts(int player) const
+{
+	return player == 1 ? valid_one : valid_two;
+}
+
+void Board::print() const
+{
+	print_board_indexes_row();
+	print_board_pieces();
+	print_board_indexes_row();
+}
+
+
+// ****** Printer ******
+
+void Board::print_board_pieces() const
+{
+	for (auto i = 0; i < int(indexes.size()); ++i)
+	{
+		// print board indexes on the left
+		if		(i % width == 0)			std::cout << ((i / width + 1) % 10) << " ";
+
+		// print board pieces
+		if		(indexes[i] == 1) 			std::cout << "o";
+		else if	(indexes[i] == 2) 			std::cout << "x";
+		else								std::cout << "-";
+
+		// print board indexes on the right
+		if		(i % width != width - 1)	std::cout << " ";
+		else								std::cout << " " << ((i / width + 1) % 10) << "\n";
+	}
+}
+
+void Board::print_board_indexes_row() const
+{
+	std::cout << "  ";
+	for (auto i = 1; i <= width; ++i)
+	{
+		std::cout << (i % 10);
+		if (i != width)
+			std::cout << " ";
+	}
+	std::cout << "\n";
+}
+
+
+// ****** Valid Spots ******
+
+void Board::update_valid(int index, int player)
+{
+	remove_valid(index);
+	update_valid_top(index, player);
+	update_valid_middle(index, player);
+	update_valid_bottom(index, player);
+}
+
+void Board::remove_valid(int index)
+{
+	if (valid_one.find(index) != valid_one.end())
+		valid_one.erase(index);
+	if (valid_two.find(index) != valid_two.end())
+		valid_two.erase(index);
+}
+
+void Board::update_valid_top(int index, int player)
+{
+	int top_mid = index - width;
+
+	if (top_mid < 0)
+		return;
+
+	// middle
+	insert_valid(top_mid, player);
+
+	// left - if not on the left border
+	if (index % width != 0)
+		insert_valid(top_mid - 1, player);
+
+	// right - if not on the right border
+	if (index % width != width - 1)
+		insert_valid(top_mid + 1, player);
+}
+
+void Board::update_valid_middle(int index, int player)
+{
+	// left - if not on the left border
+	if (index % width != 0)
+		insert_valid(index - 1, player);
+
+	// right - if not on the right border
+	if (index % width != width - 1)
+		insert_valid(index + 1, player);
+}
+
+void Board::update_valid_bottom(int index, int player)
+{
+	int bot_mid = index + width;
+
+	if (bot_mid >= size)
+		return;
+
+	// middle
+	insert_valid(bot_mid, player);
+
+	// left - if not on the left border
+	if (index % width != 0)
+		insert_valid(bot_mid - 1, player);
+
+	// right - if not on the right border
+	if (index % width != width - 1)
+		insert_valid(bot_mid + 1, player);
+}
+
+void Board::insert_valid(int index, int player)
+{
+	(void)player;
+	if (indexes[index] == 0 && valid_one.find(index) == valid_one.end())
+		valid_one.insert(index);
+	if (indexes[index] == 0 && valid_two.find(index) == valid_two.end())
+		valid_two.insert(index);
+}
+
+
+// ****** Heuristic ******
+
+void Board::update_heuristic(int index, int player)
+{
+	update_heuristic_sequence<IndexX>(index, player);
+	update_heuristic_sequence<IndexY>(index, player);
+	update_heuristic_sequence<IndexU>(index, player);
+	update_heuristic_sequence<IndexD>(index, player);
+}
+
+void Board::update_heuristic_delta(Sequence & one, Sequence & two, int player)
 {
 	// increase my score
 	auto space_one = two.len_me > 0 ? 1 : two.space_me + 1;
@@ -186,22 +205,15 @@ void Board::update_heuristic_delta(SequenceInfo & one, SequenceInfo & two, int p
 	auto new_op = get_score(one.len_op, one.space_op_one, one.space_op_two) + get_score(two.len_op, two.space_op_one, two.space_op_two);
 	auto delta_op = new_op - old_op;
 
+	// set winning condition
 	if (one.len_me + two.len_me + 1 > 4)
-	{
-		action.is_end = true;
 		condition = player == 1 ? Condition::PlayerOneWin : Condition::PlayerTwoWin;
-	}
 
+	// update delta
 	if (player == 1)
-	{
 		heuristic += (delta_me - delta_op);
-		action.delta_heuristic += (delta_me - delta_op);
-	}
 	else
-	{
 		heuristic -= (delta_me - delta_op);
-		action.delta_heuristic -= (delta_me - delta_op);
-	}
 }
 
 int Board::get_score(int len, int space_one, int space_two)
@@ -224,9 +236,4 @@ int Board::get_score(int len, int space_one, int space_two)
 	if (len < 5)
 		return len_score.at(len) * space_bonus;
 	return len_score.at(5);
-}
-
-void Board::undo_heuristic(Action const & action)
-{
-	heuristic -= action.delta_heuristic;
 }

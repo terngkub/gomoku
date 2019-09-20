@@ -34,21 +34,21 @@ Game::Game(int board_size, std::string const &p1, std::string const &p2) :
 void
 Game::operator()(int depth) {
 
-    while (!board.is_end()) {
+    while (!board.is_end(get_player_number())) {
 		std::cout << "Player " << get_player_number() << "'s turn" << std::endl;
 
-		int action;
+		int index;
 		if (get_player_mode() == AI) {
 			auto beg = std::chrono::system_clock::now();
-			action = Minimax{board, depth, get_player_number()}();
+			index = Minimax{depth, get_player_number()}(board);
 			auto end = std::chrono::system_clock::now();
 			auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - beg);
 			std::cout << "AI took " << duration.count() << "ms\n";
 		} else {
-            action = get_player_input();
+            index = get_player_input(get_player_number());
         }
 
-		board.play(action, get_player_number());
+		board = board.play(index, get_player_number());
 		board.print();
 		next_player();
 	}
@@ -56,7 +56,7 @@ Game::operator()(int depth) {
 	print_condition();
 }
 
-int Game::get_player_input()
+int Game::get_player_input(int player) const
 {
 	int index = 0;
 	while (true)
@@ -83,9 +83,9 @@ int Game::get_player_input()
 		}
 
 		index = y * board_size + x;
-		if (!board.is_valid_spot(index))
+		if (!board.is_valid(index, player))
 		{
-			std::cout << "Spot is not empty. Please try again.\n";
+			std::cout << "Spot is not valid. Please try again.\n";
 			continue;
 		}
 
@@ -113,7 +113,7 @@ Game::next_player() {
     _current_player = static_cast<int>(~static_cast<unsigned>(_current_player) & 0x1u);
 }
 
-void Game::print_condition()
+void Game::print_condition() const
 {
 	auto condition = board.get_condition();
 

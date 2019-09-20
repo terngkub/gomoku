@@ -7,16 +7,14 @@
 class Minimax
 {
 public:
-    Minimax(Board board, int depth, int ai);
-    int operator()();
+    Minimax(int depth, int ai);
+    int operator()(Board & board);
 
 private:
-    Board board;
     int const max_depth;
     int const ai;
     int best_action;
-    std::unordered_map<std::bitset<722>, int> visited_map;
     int complexity;
 
-    int minimax(int player, int depth, int alpha, int beta);
+    int minimax(Board & board, int player, int depth, int alpha, int beta);
 };

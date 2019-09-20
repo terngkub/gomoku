@@ -15,6 +15,7 @@ private:
     int const ai;
     int best_action;
     int complexity;
+    std::unordered_map<std::bitset<722>, int> visited;
 
     int minimax(Board & board, int player, int depth, int alpha, int beta);
 };

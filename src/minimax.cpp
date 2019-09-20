@@ -6,7 +6,8 @@
 Minimax::Minimax(int depth, int ai) :
 	max_depth{depth},
 	ai{ai},
-	complexity{0}
+	complexity{0},
+	visited{}
 {}
 
 int Minimax::operator()(Board & board)
@@ -61,7 +62,15 @@ int Minimax::minimax(Board & board, int player, int depth, int alpha, int beta)
 	for (auto action : actions)
 	{
 		int new_score;
-		new_score = minimax(action.second, player ^ 3, depth - 1, alpha, beta);
+		if (visited.find(action.second.get_bitset()) != visited.end())
+		{
+			new_score = visited[action.second.get_bitset()];
+		}
+		else
+		{
+			new_score = minimax(action.second, player ^ 3, depth - 1, alpha, beta);
+			visited[action.second.get_bitset()] = new_score;
+		}
 		update_score(new_score, action.first);
 		if (beta <= alpha) break;
 	}

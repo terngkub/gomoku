@@ -11,6 +11,7 @@ Board::Board(int width) :
 	width{width},
 	size{width * width},
 	indexes(size, 0),
+	bitset{},
 	condition{Condition::Playing},
 	heuristic{0},
 	valid_one{size / 2},
@@ -27,6 +28,11 @@ int Board::get_heuristic(int player) const
 Condition Board::get_condition() const
 {
 	return condition;
+}
+
+std::bitset<722> Board::get_bitset() const
+{
+	return bitset;
 }
 
 
@@ -53,6 +59,10 @@ Board Board::play(int index, int player)
 {
 	Board new_board{*this};
 	new_board.indexes[index] = player;
+	if (player == 1)
+		new_board.bitset[index * 2] = 1;
+	else
+		new_board.bitset[index * 2 + 1] = 1;
 	new_board.update_valid(index, player);
 	new_board.update_heuristic(index, player);
 	return new_board;

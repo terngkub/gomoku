@@ -46,6 +46,7 @@ public:
 
 	int						get_heuristic(int player) const;
 	Condition				get_condition() const;
+	std::bitset<722>		get_bitset() const;
 
 
 	// Checkers
@@ -66,6 +67,7 @@ private:
 	int						width;
 	int						size;
 	std::vector<int>		indexes;
+	std::bitset<722>		bitset;
 	Condition				condition;
 	int						heuristic;
 	std::set<int>			valid_one;

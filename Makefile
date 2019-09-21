@@ -3,7 +3,8 @@
 CC			=	g++
 CPP_VERSION	=	-std=c++1z
 # DEBUG		=	-g3 -fsanitize=address
-CFLAGS		=	-Wall -Wextra -Werror $(CPP_VERSION) $(DEBUG)
+OPTIMIZE	=	-O3
+CFLAGS		=	-Wall -Wextra -Werror $(CPP_VERSION) $(DEBUG) $(OPTIMIZE)
 
 # Project Settings
 NAME		=	gomoku

@@ -1,13 +1,13 @@
 #pragma once
+#include "action.hpp"
 #include "index.hpp"
+#include "sequence.hpp"
 #include <bitset>
-#include <iostream>
 #include <set>
 #include <stack>
-#include <unordered_map>
 #include <vector>
 
-enum Condition
+enum class Condition
 {
 	Playing = 0,
 	PlayerOneWin = 1,
@@ -15,114 +15,103 @@ enum Condition
 	Draw = 3
 };
 
-struct SequenceInfo
-{
-	SequenceInfo() : len_me{0}, len_op{0}, space_me{0}, space_op_one{0}, space_op_two{0} {}
-	int len_me;
-	int len_op;
-	int space_me;
-	int space_op_one;
-	int space_op_two;
-};
-
-struct SequenceAction
-{
-	bool is_combined;
-	int head_index;
-	int combined_index;
-	int combined_length;
-};
-
-struct Action
-{
-	Action(): play{0}, play_on_valid_spot{false}, valid_spots{}, delta_heuristic{0}, is_end{false} {}
-	int play;
-	bool play_on_valid_spot;
-	std::set<int> valid_spots;
-	double delta_heuristic;
-	bool is_end;
-};
-
 class Board
 {
 public:
-	Board(int size);
-    std::bitset<722> bs;
 
-	void play(int index, int player);
-	void undo();
-	int get_heuristic(int player) const;
-	std::set<int> const & next(int player) const;
-	void print() const;
-	bool is_first_turn() const;
-	bool is_valid_spot(int index) const;
-	bool is_end() const;
-	Condition get_condition() const;
+	// Constructors and Destructor
+	Board() = delete;
+	Board(int width);
+	~Board() = default;
+
+	// Getter
+	Condition					get_condition() const;
+	int							get_heuristic(int player) const;
+	std::bitset<722> const &	get_bitset() const;
+	std::set<int> const &		get_nexts(int player) const;
+
+	// Checkers
+	bool						is_first_turn() const;
+	bool						is_valid_spot(int index) const;
+	bool						is_end() const;
+
+	// Public Methods
+	void						play(int index, int player);
+	void						undo();
+	void						print() const;
+
 
 private:
-	int size;
-	std::vector<int> spots;
-	Condition condition;
-	std::stack<Action> history;
 
-	// ***** Valid Spots ******
-	std::set<int> valid_spots;
+	int							width;
+	int							size;
+	int							heuristic;
+	Condition					condition;
+	std::vector<int>			indexes;
+    std::bitset<722>			bs;
+	std::set<int>				valids;
+	std::stack<Action>			history;
 
-	std::set<int> update_valid_spots(int index, int player);
-	void insert_if_valid(std::set<int> & actions, int index);
-	void undo_valid_spots(std::set<int> const & action_valid_spots);
+	// Valids
+	std::set<int>				update_valids(int index, int player);
+	void						insert_if_valid(std::set<int> & actions, int index);
+	void						undo_valids(std::set<int> const & action_valids);
 
-	// ****** Heuristic ******
-	int heuristic;
-
-	void update_heuristic(int index, int player, Action & action);
+	// Heuristic
+	void						update_heuristic(int index, int player, Action & action);
 	template<typename T>
-	void update_heuristic_sequence(int index, int player, Action & action);
+	void						update_heuristic_sequence(int index, int player, Action & action);
 	template<typename T>
-	SequenceInfo explore_sequence(int index, int player, bool inc);
-	void update_heuristic_delta(SequenceInfo & one, SequenceInfo & two, int player, Action & action);
-	int get_score(int len, int space_one, int space_two);
-	void undo_heuristic(Action const & action);
-	
+	Sequence					explore_sequence_normal(int index, int player, bool inc);
+	void						update_heuristic_delta(Sequence & one, Sequence & two, int player, Action & action);
+	int							get_score(int len, int space_one, int space_two);
+	void						undo_heuristic(Action const & action);
+
+	// Printer
+	void						print_index() const;
+	void						print_board() const;
 };
 
 template<typename T>
 void Board::update_heuristic_sequence(int index, int player, Action & action)
 {
-	auto one = explore_sequence<T>(index, player, true);
-	auto two = explore_sequence<T>(index, player, false);
+	auto one = explore_sequence_normal<T>(index, player, true);
+	auto two = explore_sequence_normal<T>(index, player, false);
 	update_heuristic_delta(one, two, player, action);
 }
 
 template<typename T>
-SequenceInfo Board::explore_sequence(int index, int player, bool inc)
+Sequence Board::explore_sequence_normal(int index, int player, bool inc)
 {
 	T i{index, 19, inc};
-	SequenceInfo info{};
+	Sequence info{};
 
 	i.move();
 	if (!i.check())
-	{
 		return info;
-	}
-	if (spots[i.val()] == player)
+
+	// There are 2 types of sequence:
+	// 1. my pieces, space => increase of my length or combination
+	// 2. space, opponent, space => opponent space reduction
+
+	if (indexes[i.val()] == player)
 	{
-		for (; i.check() && spots[i.val()] == player; i.move())
+		for (; i.check() && indexes[i.val()] == player; i.move())
 			++info.len_me;
-		for (; i.check() && spots[i.val()] == 0; i.move())
+		for (; i.check() && indexes[i.val()] == 0; i.move())
 			++info.space_me;
 	}
 	else
 	{
-		for (; i.check() && spots[i.val()] == 0; i.move())
+		for (; i.check() && indexes[i.val()] == 0; i.move())
 		{
 			++info.space_me;
 			++info.space_op_one;
 		}
 		int opponent = player ^ 3;
-		for (; i.check() && spots[i.val()] == opponent; i.move())
+		for (; i.check() && indexes[i.val()] == opponent; i.move())
 			++info.len_op;
-		for (; i.check() && spots[i.val()] == 0; i.move())
+		for (; i.check() && indexes[i.val()] == 0; i.move())
 			++info.space_op_two;
 	}
 	return info;

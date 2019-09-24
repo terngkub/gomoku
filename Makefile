@@ -8,17 +8,21 @@ CFLAGS		=	-Wall -Wextra -Werror $(CPP_VERSION) $(DEBUG) $(OPTIMIZE)
 
 # Project Settings
 NAME		=	gomoku
-HEADER		=	board.hpp \
+HEADER		=	action.hpp \
+				board.hpp \
 				index.hpp \
 				flag.hpp \
 				game.hpp \
-				minimax.hpp
-FILE		=	board.cpp \
+				minimax.hpp \
+				sequence.hpp
+FILE		=	action.cpp \
+				board.cpp \
 				index.cpp \
 				flag.cpp \
 				game.cpp \
 				main.cpp \
-				minimax.cpp
+				minimax.cpp \
+				sequence.cpp
 SRC_DIR		=	src
 INC_DIR		=	include
 OBJ_DIR		=	obj

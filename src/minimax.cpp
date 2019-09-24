@@ -37,7 +37,7 @@ int Minimax::minimax(int player, int depth, int alpha, int beta)
 		return board.get_heuristic(ai);
 	}
 
-	auto nexts = board.next(player);
+	auto nexts = board.get_nexts(player);
 
 	int base_score = (player == ai)
 		? std::numeric_limits<int>::min()
@@ -77,14 +77,14 @@ int Minimax::minimax(int player, int depth, int alpha, int beta)
 	{
 		board.play(action.first, player);
 		int new_score;
-		if (visited_map.find(board.bs) != visited_map.end())
+		if (visited_map.find(board.get_bitset()) != visited_map.end())
 		{
-			new_score = visited_map[board.bs];
+			new_score = visited_map[board.get_bitset()];
 		}
 		else
 		{
 			new_score = minimax(player ^ 3, depth - 1, alpha, beta);
-			visited_map[board.bs] = new_score;
+			visited_map[board.get_bitset()] = new_score;
 		}
 		board.undo();
 		update_score(new_score, action.first);

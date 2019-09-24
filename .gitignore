@@ -3,5 +3,7 @@ DS_Store
 *.o
 obj
 gomoku
+.vscode
 .idea
+build
 cmake-build-debug

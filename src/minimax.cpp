@@ -22,7 +22,7 @@ Minimax::Minimax(Board board, int depth, int ai) :
 int Minimax::operator()()
 {
 	if (board.is_first_turn())
-		return 180;
+		return board.get_size() / 2;
 	minimax(ai, max_depth, std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
 	std::cout << "complexity: " << complexity << "\n";
 	return best_action;
@@ -77,14 +77,14 @@ int Minimax::minimax(int player, int depth, int alpha, int beta)
 	{
 		board.play(action.first, player);
 		int new_score;
-		if (visited_map.find(board.get_bitset()) != visited_map.end())
+		if (visited_map.find(board.get_indexes()) != visited_map.end())
 		{
-			new_score = visited_map[board.get_bitset()];
+			new_score = visited_map[board.get_indexes()];
 		}
 		else
 		{
 			new_score = minimax(player ^ 3, depth - 1, alpha, beta);
-			visited_map[board.get_bitset()] = new_score;
+			visited_map[board.get_indexes()] = new_score;
 		}
 		board.undo();
 		update_score(new_score, action.first);

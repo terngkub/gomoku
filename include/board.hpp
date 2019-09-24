@@ -25,9 +25,10 @@ public:
 	~Board() = default;
 
 	// Getter
+	int							get_size() const;
 	Condition					get_condition() const;
 	int							get_heuristic(int player) const;
-	std::bitset<722> const &	get_bitset() const;
+	std::vector<int> const &	get_indexes() const;
 	std::set<int> const &		get_nexts(int player) const;
 
 	// Checkers
@@ -48,7 +49,6 @@ private:
 	int							heuristic;
 	Condition					condition;
 	std::vector<int>			indexes;
-    std::bitset<722>			bs;
 	std::set<int>				valids;
 	std::stack<Action>			history;
 	Action						current_action;

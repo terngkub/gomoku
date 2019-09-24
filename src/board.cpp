@@ -13,13 +13,17 @@ Board::Board(int width) :
 	heuristic{0},
 	condition{Condition::Playing},
 	indexes(size, 0),
-	bs{},
 	valids{},
 	history{}
 {}
 
 
 // Getters
+
+int Board::get_size() const
+{
+	return size;
+}
 
 Condition Board::get_condition() const
 {
@@ -31,9 +35,9 @@ int Board::get_heuristic(int player) const
 	return player == 1 ? heuristic : -heuristic;
 }
 
-std::bitset<722> const & Board::get_bitset() const
+std::vector<int> const & Board::get_indexes() const
 {
-	return bs;
+	return indexes;
 }
 
 std::set<int> const & Board::get_nexts(int player) const
@@ -66,7 +70,6 @@ bool Board::is_end() const
 void Board::play(int index, int player)
 {
 	indexes[index] = player;
-	(player == 1) ? bs.set(index * 2 + 1) : bs.set(index * 2);
 
 	current_action.play = index;
 
@@ -87,8 +90,6 @@ void Board::undo()
 {
 	auto action = load_history();
 	indexes[action.play] = 0;
-	bs.reset(action.play * 2);
-	bs.reset(action.play * 2 + 1);
 	if (action.play_on_valid_spot)
 		valids.insert(action.play);
 	if (action.is_end)

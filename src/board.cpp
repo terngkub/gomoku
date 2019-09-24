@@ -5,7 +5,7 @@
 #include <iostream>
 #include <unordered_map>
 
-// Constructor
+// ****** Constructor ******
 
 Board::Board(int width) :
 	width{width},
@@ -18,7 +18,7 @@ Board::Board(int width) :
 {}
 
 
-// Getters
+// ****** Getters ******
 
 int Board::get_size() const
 {
@@ -47,7 +47,7 @@ std::set<int> const & Board::get_nexts(int player) const
 }
 
 
-// Checkers
+// ****** Checkers ******
 
 bool Board::is_first_turn() const
 {
@@ -65,37 +65,23 @@ bool Board::is_end() const
 }
 
 
-// Public Methods
+// ****** Public Methods ******
 
 void Board::play(int index, int player)
 {
-	indexes[index] = player;
-
-	current_action.play = index;
-
+	update_indexes(index, player);
+	update_valids(index, player);
 	update_heuristic(index, player);
-
-	current_action.play_on_valid_spot = false;
-	if (valids.find(index) != valids.end())
-	{
-		current_action.play_on_valid_spot = true;
-		valids.erase(index);
-	}
-	current_action.valids = update_valids(index, player);
-
 	save_history();
 }
 
 void Board::undo()
 {
 	auto action = load_history();
-	indexes[action.play] = 0;
-	if (action.play_on_valid_spot)
-		valids.insert(action.play);
-	if (action.is_end)
-		condition = Condition::Playing;
-	undo_valids(action.valids);
+	undo_indexes(action);
+	undo_valids(action);
 	undo_heuristic(action);
+	undo_condition(action);
 }
 
 void Board::print() const
@@ -122,49 +108,87 @@ Action Board::load_history()
 }
 
 
-// ****** Valid indexes ******
+// ****** Indexes ******
 
-std::set<int> Board::update_valids(int index, int player)
+void Board::update_indexes(int index, int player)
 {
-	(void)player;
-	std::set<int> actions;
-
-	// top >> (middle, left, right)
-	if (index / width != 0)
-	{
-		insert_if_valid(actions, index - width);
-		if (index % width != 0) insert_if_valid(actions, index - width - 1);
-		if (index % width != width - 1) insert_if_valid(actions, index - width + 1);
-	}
-
-	// middle (left, right)
-	if (index % width != 0) insert_if_valid(actions, index - 1);
-	if (index % width != width - 1) insert_if_valid(actions, index + 1);
-
-	// bottom >> (middle, left, right)
-	if (index / width != width - 1)
-	{
-		insert_if_valid(actions, index + width);
-		if (index % width != 0) insert_if_valid(actions, index + width - 1);
-		if (index % width != width - 1) insert_if_valid(actions, index + width + 1);
-	}
-
-	return actions;
+	indexes[index] = player;
+	current_action.index = index;
+	current_action.player = player;
 }
 
-void Board::insert_if_valid(std::set<int> & actions, int index)
+void Board::undo_indexes(Action const & action)
+{
+	indexes[action.index] = 0;
+}
+
+
+// ****** Valid indexes ******
+
+void Board::update_valids(int index, int player)
+{
+	if (valids.find(index) != valids.end())
+	{
+		current_action.play_on_valid_spot = true;
+		valids.erase(index);
+	}
+	update_valids_top(index, player);
+	update_valids_middle(index, player);
+	update_valids_bottom(index, player);
+}
+
+void Board::update_valids_top(int index, int player)
+{
+	(void)player;
+	int top = index - width;
+	if (top >= 0)
+	{
+		insert_valid(top);
+		insert_left_right(index, top);
+	}
+}
+
+void Board::update_valids_middle(int index, int player)
+{
+	(void)player;
+	insert_left_right(index, index);
+}
+
+void Board::update_valids_bottom(int index, int player)
+{
+	(void)player;
+	int bottom = index + width;
+	if (bottom < size)
+	{
+		insert_valid(bottom);
+		insert_left_right(index, bottom);
+	}
+}
+
+void Board::insert_left_right(int based_index, int inserted_index)
+{
+	int col = based_index % width;
+	if (col != 0)
+		insert_valid(inserted_index - 1);
+	if (col != width - 1)
+		insert_valid(inserted_index + 1);
+}
+
+void Board::insert_valid(int index)
 {
 	if (indexes[index] == 0 && valids.find(index) == valids.end())
 	{
 		valids.insert(index);
-		actions.insert(index);
+		current_action.valids.insert(index);
 	}
 }
 
-void Board::undo_valids(std::set<int> const & action_valids)
+void Board::undo_valids(Action const & action)
 {
-	for (auto spot : action_valids)
-		valids.erase(spot);
+	if (action.play_on_valid_spot)
+		valids.insert(action.index);
+	for (auto index : action.valids)
+		valids.erase(index);
 }
 
 
@@ -235,6 +259,15 @@ int Board::get_score(int len, int space_one, int space_two)
 void Board::undo_heuristic(Action const & action)
 {
 	heuristic -= action.delta_heuristic;
+}
+
+
+// ****** Condition ******
+
+void Board::undo_condition(Action const & action)
+{
+	if (action.is_end)
+		condition = Condition::Playing;
 }
 
 

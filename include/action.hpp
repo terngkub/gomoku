@@ -6,7 +6,8 @@ class Action
 public:
     Action();
 
-	int play;
+	int index;
+	int player;
 	bool play_on_valid_spot;
 	std::set<int> valids;
 	double delta_heuristic;

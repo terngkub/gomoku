@@ -57,10 +57,18 @@ private:
 	void						save_history();
 	Action						load_history();
 
+	// Indexes
+	void						update_indexes(int index, int player);
+	void						undo_indexes(Action const & action);
+
 	// Valids
-	std::set<int>				update_valids(int index, int player);
-	void						insert_if_valid(std::set<int> & actions, int index);
-	void						undo_valids(std::set<int> const & action_valids);
+	void						update_valids(int index, int player);
+	void						update_valids_top(int index, int player);
+	void						update_valids_middle(int index, int player);
+	void						update_valids_bottom(int index, int player);
+	void						insert_left_right(int based_index, int inserted_index);
+	void						insert_valid(int index);
+	void						undo_valids(Action const & action);
 
 	// Heuristic
 	void						update_heuristic(int index, int player);
@@ -71,6 +79,9 @@ private:
 	void						update_heuristic_delta(Sequence & one, Sequence & two, int player);
 	int							get_score(int len, int space_one, int space_two);
 	void						undo_heuristic(Action const & action);
+	
+	// Condition
+	void						undo_condition(Action const & action);
 
 	// Printer
 	void						print_index() const;

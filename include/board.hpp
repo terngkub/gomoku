@@ -51,6 +51,11 @@ private:
     std::bitset<722>			bs;
 	std::set<int>				valids;
 	std::stack<Action>			history;
+	Action						current_action;
+
+	// History
+	void						save_history();
+	Action						load_history();
 
 	// Valids
 	std::set<int>				update_valids(int index, int player);
@@ -58,12 +63,12 @@ private:
 	void						undo_valids(std::set<int> const & action_valids);
 
 	// Heuristic
-	void						update_heuristic(int index, int player, Action & action);
+	void						update_heuristic(int index, int player);
 	template<typename T>
-	void						update_heuristic_sequence(int index, int player, Action & action);
+	void						update_heuristic_sequence(int index, int player);
 	template<typename T>
 	Sequence					explore_sequence_normal(int index, int player, bool inc);
-	void						update_heuristic_delta(Sequence & one, Sequence & two, int player, Action & action);
+	void						update_heuristic_delta(Sequence & one, Sequence & two, int player);
 	int							get_score(int len, int space_one, int space_two);
 	void						undo_heuristic(Action const & action);
 
@@ -73,11 +78,11 @@ private:
 };
 
 template<typename T>
-void Board::update_heuristic_sequence(int index, int player, Action & action)
+void Board::update_heuristic_sequence(int index, int player)
 {
 	auto one = explore_sequence_normal<T>(index, player, true);
 	auto two = explore_sequence_normal<T>(index, player, false);
-	update_heuristic_delta(one, two, player, action);
+	update_heuristic_delta(one, two, player);
 }
 
 template<typename T>

@@ -11,6 +11,6 @@ main (int argc, char const *argv[]) {
     auto p2 = flag.optString("player2", "human", "choose between human or ai for player two");
     flag.parse(argc, argv);
 
-    Game{19, *p1, *p2}(10);
+    Game{19, *p1, *p2}(4);
     return retcode;
 }

@@ -68,26 +68,24 @@ void Board::play(int index, int player)
 	indexes[index] = player;
 	(player == 1) ? bs.set(index * 2 + 1) : bs.set(index * 2);
 
-	Action action;
-	action.play = index;
+	current_action.play = index;
 
-	update_heuristic(index, player, action);
+	update_heuristic(index, player);
 
-	action.play_on_valid_spot = false;
+	current_action.play_on_valid_spot = false;
 	if (valids.find(index) != valids.end())
 	{
-		action.play_on_valid_spot = true;
+		current_action.play_on_valid_spot = true;
 		valids.erase(index);
 	}
-	action.valids = update_valids(index, player);
+	current_action.valids = update_valids(index, player);
 
-	history.push(action);
+	save_history();
 }
 
 void Board::undo()
 {
-	auto action = history.top();
-	history.pop();
+	auto action = load_history();
 	indexes[action.play] = 0;
 	bs.reset(action.play * 2);
 	bs.reset(action.play * 2 + 1);
@@ -104,6 +102,22 @@ void Board::print() const
 	print_index();
 	print_board();
 	print_index();
+}
+
+
+// ****** History ******
+
+void Board::save_history()
+{
+	history.push(current_action);
+	current_action = Action{};
+}
+
+Action Board::load_history()
+{
+	auto action = history.top();
+	history.pop();
+	return action;
 }
 
 
@@ -155,15 +169,15 @@ void Board::undo_valids(std::set<int> const & action_valids)
 
 // ****** Heuristic ******
 
-void Board::update_heuristic(int index, int player, Action & action)
+void Board::update_heuristic(int index, int player)
 {
-	update_heuristic_sequence<IndexX>(index, player, action);
-	update_heuristic_sequence<IndexY>(index, player, action);
-	update_heuristic_sequence<IndexU>(index, player, action);
-	update_heuristic_sequence<IndexD>(index, player, action);
+	update_heuristic_sequence<IndexX>(index, player);
+	update_heuristic_sequence<IndexY>(index, player);
+	update_heuristic_sequence<IndexU>(index, player);
+	update_heuristic_sequence<IndexD>(index, player);
 }
 
-void Board::update_heuristic_delta(Sequence & one, Sequence & two, int player, Action & action)
+void Board::update_heuristic_delta(Sequence & one, Sequence & two, int player)
 {
 	// increase my score
 	auto space_one = two.len_me > 0 ? 1 : two.space_me + 1;
@@ -179,19 +193,19 @@ void Board::update_heuristic_delta(Sequence & one, Sequence & two, int player, A
 
 	if (one.len_me + two.len_me + 1 > 4)
 	{
-		action.is_end = true;
+		current_action.is_end = true;
 		condition = player == 1 ? Condition::PlayerOneWin : Condition::PlayerTwoWin;
 	}
 
 	if (player == 1)
 	{
 		heuristic += (delta_me - delta_op);
-		action.delta_heuristic += (delta_me - delta_op);
+		current_action.delta_heuristic += (delta_me - delta_op);
 	}
 	else
 	{
 		heuristic -= (delta_me - delta_op);
-		action.delta_heuristic -= (delta_me - delta_op);
+		current_action.delta_heuristic -= (delta_me - delta_op);
 	}
 }
 

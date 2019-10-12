@@ -1,7 +1,7 @@
 
 # Compiler Settings
 CC			=	g++
-CPP_VERSION	=	-std=c++1z
+CPP_VERSION	=	-std=c++17
 # DEBUG		=	-g3 -fsanitize=address
 OPTIMIZE	=	-O3
 CFLAGS		=	-Wall -Wextra -Werror $(CPP_VERSION) $(DEBUG) $(OPTIMIZE)

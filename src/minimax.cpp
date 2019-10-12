@@ -5,7 +5,7 @@
 
 struct ActionComparator
 {
-	bool operator()(std::pair<int, int> const & lhs, std::pair<int, int> const & rhs)
+	bool operator()(std::pair<int, int> const & lhs, std::pair<int, int> const & rhs) const
 	{
 		return lhs.second > rhs.second;
 	}

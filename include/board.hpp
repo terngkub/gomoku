@@ -3,6 +3,7 @@
 #include "index.hpp"
 #include "sequence.hpp"
 #include <bitset>
+#include <iostream>
 #include <set>
 #include <stack>
 #include <vector>
@@ -72,15 +73,25 @@ private:
 
 	// Heuristic
 	void						update_heuristic(int index, int player);
+
 	template<typename T>
 	void						update_heuristic_sequence(int index, int player);
-	template<typename T>
-	Sequence					explore_sequence_normal(int index, int player, bool inc);
-	void						update_heuristic_delta(Sequence & one, Sequence & two, int player);
-	int							get_score(int len, int space_one, int space_two);
+	template <typename T>
+	std::vector<Sequence>		get_sequence_vector(int index, bool inc) const;
+	Sequence					get_next_sequence(Index & i) const;
+	SequenceFormat				get_sequence_format(std::vector<Sequence> const & seq_vector, int player) const;
+
+	int							calculate_delta(std::vector<Sequence> const & one, std::vector<Sequence> const & two, int player);
+	int							calculate_delta_me(std::vector<Sequence> const & vector_one, std::vector<Sequence> const & vector_two, int player);
+	int							calculate_delta_op(std::vector<Sequence> const & one, std::vector<Sequence> const & two, int player) const;
+
+	int							get_score(SequenceFormat const & seq) const;
+
+	void						update_delta(int player, int delta);
 	void						undo_heuristic(Action const & action);
 	
 	// Condition
+	void						update_condition(SequenceFormat const & seq, int player);
 	void						undo_condition(Action const & action);
 
 	// Printer
@@ -91,44 +102,25 @@ private:
 template<typename T>
 void Board::update_heuristic_sequence(int index, int player)
 {
-	auto one = explore_sequence_normal<T>(index, player, true);
-	auto two = explore_sequence_normal<T>(index, player, false);
-	update_heuristic_delta(one, two, player);
+	auto vector_one = get_sequence_vector<T>(index, true);
+	auto vector_two = get_sequence_vector<T>(index, false);
+	auto delta = calculate_delta(vector_one, vector_two, player);
+	update_delta(player, delta);
 }
 
-template<typename T>
-Sequence Board::explore_sequence_normal(int index, int player, bool inc)
+template <typename T>
+std::vector<Sequence> Board::get_sequence_vector(int index, bool inc) const
 {
-	T i{index, 19, inc};
-	Sequence info{};
-
+	std::vector<Sequence> seq_vector{};
+	T i{index, width, inc};
 	i.move();
-	if (!i.check())
-		return info;
 
-	// There are 2 types of sequence:
-	// 1. my pieces, space => increase of my length or combination
-	// 2. space, opponent, space => opponent space reduction
+	auto seq = get_next_sequence(i);
+	while (seq.player != -1)
+	{
+		seq_vector.push_back(seq);
+		seq = get_next_sequence(i);
+	}
 
-	if (indexes[i.val()] == player)
-	{
-		for (; i.check() && indexes[i.val()] == player; i.move())
-			++info.len_me;
-		for (; i.check() && indexes[i.val()] == 0; i.move())
-			++info.space_me;
-	}
-	else
-	{
-		for (; i.check() && indexes[i.val()] == 0; i.move())
-		{
-			++info.space_me;
-			++info.space_op_one;
-		}
-		int opponent = player ^ 3;
-		for (; i.check() && indexes[i.val()] == opponent; i.move())
-			++info.len_op;
-		for (; i.check() && indexes[i.val()] == 0; i.move())
-			++info.space_op_two;
-	}
-	return info;
+	return seq_vector;
 }

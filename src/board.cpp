@@ -86,9 +86,11 @@ void Board::undo()
 
 void Board::print() const
 {
+	std::cout << "heuristic: " << heuristic << "\n";
 	print_index();
 	print_board();
 	print_index();
+	std::cout << "\n";
 }
 
 
@@ -202,41 +204,178 @@ void Board::update_heuristic(int index, int player)
 	update_heuristic_sequence<IndexD>(index, player);
 }
 
-void Board::update_heuristic_delta(Sequence & one, Sequence & two, int player)
+Sequence Board::get_next_sequence(Index & i) const
 {
-	// increase my score
-	auto space_one = two.len_me > 0 ? 1 : two.space_me + 1;
-	auto space_two = one.len_me > 0 ? 1 : one.space_me + 1;
-	auto old_me = get_score(one.len_me, one.space_me, space_one) + get_score(two.len_me, two.space_me, space_two);
-	auto new_me = get_score(one.len_me + two.len_me + 1, one.space_me, two.space_me);
-	auto delta_me = new_me - old_me;
+	Sequence seq{};
 
-	// reduce opponent score
-	auto old_op = get_score(one.len_op, one.space_op_one + two.space_op_one + 1, one.space_op_two) + get_score(two.len_op, two.space_op_one + one.space_op_one + 1, two.space_op_two);
-	auto new_op = get_score(one.len_op, one.space_op_one, one.space_op_two) + get_score(two.len_op, two.space_op_one, two.space_op_two);
-	auto delta_op = new_op - old_op;
+	if (!i.check())
+		return seq;
 
-	if (one.len_me + two.len_me + 1 > 4)
+	seq.player = indexes[i.val()];
+
+	for (; i.check() && indexes[i.val()] == seq.player; i.move())
+		++seq.count;
+
+	return seq;
+}
+
+SequenceFormat Board::get_sequence_format(std::vector<Sequence> const & seq_vector, int player) const
+{
+	SequenceFormat sf{};
+
+	if (seq_vector.empty())
+		return sf;
+
+	auto it = seq_vector.cbegin();
+	auto end = seq_vector.cend();
+
+	// space_one
+	if (it->player == 0)
 	{
-		current_action.is_end = true;
-		condition = player == 1 ? Condition::PlayerOneWin : Condition::PlayerTwoWin;
+		sf.space_one = it->count;
+		++it;
+	}
+	// len
+	if (it != end && it->player == player)
+	{
+		sf.len = it->count;
+		++it;
+		// space_two
+		if (it != end && it->player == 0)
+			sf.space_two = it->count;
 	}
 
-	if (player == 1)
+	return sf;
+}
+
+int Board::calculate_delta(std::vector<Sequence> const & one, std::vector<Sequence> const & two, int player)
+{
+	auto delta_me = calculate_delta_me(one, two, player);
+	auto delta_op = calculate_delta_op(one, two, player);
+	return delta_me - delta_op;
+}
+
+int Board::calculate_delta_me(std::vector<Sequence> const & vector_one, std::vector<Sequence> const & vector_two, int player)
+{
+	auto sf_one = get_sequence_format(vector_one, player);
+	auto sf_two = get_sequence_format(vector_two, player);
+
+	SequenceFormat cal_one
 	{
-		heuristic += (delta_me - delta_op);
-		current_action.delta_heuristic += (delta_me - delta_op);
+		sf_one.space_one + sf_two.space_one + 1,
+		sf_one.len,
+		sf_one.space_two
+	};
+	SequenceFormat cal_two
+	{
+		sf_one.space_one + sf_two.space_one + 1,
+		sf_two.len,
+		sf_two.space_two
+	};
+
+	auto score_one = get_score(cal_one);
+	auto score_two = get_score(cal_two);
+
+	auto score_new = 0;
+	auto score_old = score_one + score_two;
+
+	if (sf_one.space_one != 0)
+	{
+		// no combine
+		if (sf_two.space_one != 0)
+		{
+			SequenceFormat sf_new
+			{
+				sf_one.space_one,
+				1,
+				sf_two.space_one,
+			};
+			score_new = score_old + get_score(sf_new);
+		}
+		// combine with sf_two
+		else
+		{
+			SequenceFormat sf_new
+			{
+				sf_one.space_one,
+				sf_two.len + 1,
+				sf_two.space_two
+			};
+			score_new = score_one + get_score(sf_new);
+			update_condition(sf_new, player);
+		}
 	}
 	else
 	{
-		heuristic -= (delta_me - delta_op);
-		current_action.delta_heuristic -= (delta_me - delta_op);
+		// combine with sf_one
+		if (sf_two.space_one != 0)
+		{
+			SequenceFormat sf_new
+			{
+				sf_two.space_one,
+				sf_one.len + 1,
+				sf_one.space_two
+			};
+			score_new = score_two + get_score(sf_new);
+			update_condition(sf_new, player);
+		}
+		// combine with both
+		else
+		{
+			SequenceFormat sf_new{
+				sf_one.space_two,
+				sf_one.len + sf_two.len + 1,
+				sf_two.space_two
+			};
+			score_new = get_score(sf_new);
+			update_condition(sf_new, player);
+		}
+	}
+
+	return score_new - score_old;
+}
+
+int Board::calculate_delta_op(std::vector<Sequence> const & one, std::vector<Sequence> const & two, int player) const
+{
+	auto sf_one = get_sequence_format(one, player ^ 3);
+	auto sf_two = get_sequence_format(two, player ^ 3);
+
+	SequenceFormat old_sf_one
+	{
+		sf_one.space_one + sf_two.space_one + 1,
+		sf_one.len,
+		sf_one.space_two
+	};
+	SequenceFormat old_sf_two
+	{
+		sf_one.space_one + sf_two.space_one + 1,
+		sf_two.len,
+		sf_two.space_two
+	};
+
+	auto score_old = get_score(old_sf_one) + get_score(old_sf_two);
+	auto score_new = get_score(sf_one) + get_score(sf_two);
+
+	return score_new - score_old;
+}
+
+void Board::update_delta(int player, int delta)
+{
+	if (player == 1)
+	{
+		heuristic += delta;
+		current_action.delta_heuristic += delta;
+	}
+	else
+	{
+		heuristic -= delta;
+		current_action.delta_heuristic -= delta;
 	}
 }
 
-int Board::get_score(int len, int space_one, int space_two)
+int Board::get_score(SequenceFormat const & seq) const
 {
-	static const std::unordered_map<int, int> len_score
+	static const std::unordered_map<int, int> len_score_one
 	{
 		{0, 0},
 		{1, 0},
@@ -245,15 +384,24 @@ int Board::get_score(int len, int space_one, int space_two)
 		{4, 1000},
 		{5, 10000}
 	};
-	auto space_max = 5 - len;
-	auto s1 = space_one < space_max ? space_one : space_max;
-	auto s2 = space_two < space_max ? space_two : space_max;
-	if (len + s1 + s2 < 5)
+	static const std::unordered_map<int, int> len_score_two
+	{
+		{0, 0},
+		{1, 0},
+		{2, 10},
+		{3, 200},
+		{4, 3000},
+		{5, 10000}
+	};
+	if (seq.len + seq.space_one + seq.space_two < 5)
 		return 0;
-	auto space_bonus = s1 != 0 && s2 != 0 ? 2 : 1;
-	if (len < 5)
-		return len_score.at(len) * space_bonus;
-	return len_score.at(5);
+	if (seq.len < 5)
+	{
+		if (seq.space_one != 0 && seq.space_two != 0)
+			return len_score_two.at(seq.len);
+		return len_score_one.at(seq.len);
+	}
+	return len_score_one.at(5);
 }
 
 void Board::undo_heuristic(Action const & action)
@@ -263,6 +411,15 @@ void Board::undo_heuristic(Action const & action)
 
 
 // ****** Condition ******
+
+void Board::update_condition(SequenceFormat const & seq, int player)
+{
+	if (seq.len >= 5)
+	{
+		current_action.is_end = true;
+		condition = player == 1 ? Condition::PlayerOneWin : Condition::PlayerTwoWin;
+	}
+}
 
 void Board::undo_condition(Action const & action)
 {
